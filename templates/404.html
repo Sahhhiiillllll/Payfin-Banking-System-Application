@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Page Not Found — Payfin{% endblock %}
+{% block body %}
+<div class="error-page">
+  <div style="position:absolute;inset:0;background:radial-gradient(circle at center,rgba(0,212,200,0.04) 0%,transparent 60%);pointer-events:none;"></div>
+  <div style="position:relative;z-index:1;text-align:center;">
+    <div class="error-code" style="font-size:7rem;font-weight:900;background:linear-gradient(135deg,var(--bg-surface),var(--bg-elevated));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;">404</div>
+    <div style="font-size:1.5rem;font-weight:700;margin-bottom:0.75rem;color:var(--text-primary);">Page Not Found</div>
+    <p style="color:var(--text-second);max-width:400px;margin:0 auto 2rem;line-height:1.7;">
+      The page you're looking for doesn't exist or has been moved. Let's get you back on track.
+    </p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+      <a href="/"          class="btn btn-ghost">Back to Home</a>
+    </div>
+    <div style="margin-top:3rem;">
+      <div class="logo-mark" style="justify-content:center;gap:10px;display:flex;align-items:center;">
+        <div class="logo-icon" style="width:32px;height:32px;font-size:1rem;">V</div>
+        <span style="font-weight:700;color:var(--text-second);">Payfin</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

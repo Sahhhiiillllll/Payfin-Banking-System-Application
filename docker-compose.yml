@@ -1,0 +1,50 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: payfin-postgres
+    environment:
+      POSTGRES_USER: payfin
+      POSTGRES_PASSWORD: payfin
+      POSTGRES_DB: payfin
+    ports:
+      - "5432:5432"
+    volumes:
+      - payfin_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payfin"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: payfin-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Legacy Flask monolith (optional — use for comparison)
+  payfin-legacy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: payfin-legacy
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_PATH=/app/data/payfin.db
+    volumes:
+      - payfin_sqlite:/app/data
+    profiles:
+      - legacy
+
+volumes:
+  payfin_pg:
+  payfin_sqlite:

@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% block title %}UPI Payments — Payfin{% endblock %}
+{% block body %}
+
+<div class="app-shell">
+  {% set active_page = 'upi' %}
+  {% include "sidebar.html" %}
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="page-title">UPI Payments</div>
+        <div class="page-subtitle">Send & receive money instantly with your @payfin handle</div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-time" id="topbar-clock">--:--:--</div>
+      </div>
+    </header>
+
+    <main class="page-area">
+
+      <!-- UPI ID Card -->
+      <div class="upi-card animate-fade-in" style="margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+          <div>
+            <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:0.5rem;">Your Payfin UPI ID</div>
+            <div class="upi-vpa-display" id="upi-id-display">
+              <span id="upi-id-text">Loading...</span>
+              <button class="copy-btn" onclick="copyUPI()" title="Copy UPI ID">📋</button>
+            </div>
+            <div style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-second);">
+              ✅ Works with PhonePe, Google Pay, Paytm, BHIM, and all UPI apps
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:0.5rem;">UPI Transactions (30d)</div>
+            <div style="font-size:1.5rem;font-weight:800;color:var(--teal);" id="upi-txn-count">—</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">Total sent/received</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+
+        <!-- Send Money via UPI -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">⚡ Send Money via UPI</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">From Account</label>
+            <select id="upi-from-account" class="form-select">
+              <option value="">Loading accounts...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Recipient UPI ID</label>
+            <div style="position:relative;">
+              <input id="upi-to" class="form-input" type="text"
+                placeholder="e.g. friend@payfin"
+                oninput="resolveUPI()"
+                style="padding-right:5rem;">
+              <span id="upi-resolve-status" style="
+                position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);
+                font-size:0.75rem;font-weight:600;
+              "></span>
+            </div>
+            <div id="upi-resolved-name" style="
+              font-size:0.8rem;color:var(--green);margin-top:0.4rem;
+              display:none;padding-left:4px;
+            "></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Amount (₹)</label>
+            <div class="input-group">
+              <span class="input-prefix">₹</span>
+              <input id="upi-amount" class="form-input" type="number" min="1" step="0.01"
+                placeholder="e.g. 500" style="padding-left:2.5rem;">
+            </div>
+          </div>
+
+          <!-- Quick amounts -->
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:-0.5rem;margin-bottom:1rem;">
+            <button class="btn btn-ghost btn-sm" onclick="setAmount(100)">₹100</button>
+            <button class="btn btn-ghost btn-sm" onclick="setAmount(500)">₹500</button>
+            <button class="btn btn-ghost btn-sm" onclick="setAmount(1000)">₹1,000</button>
+            <button class="btn btn-ghost btn-sm" onclick="setAmount(5000)">₹5,000</button>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Note (Optional)</label>
+            <input id="upi-note" class="form-input" type="text" placeholder="e.g. For dinner 🍕">
+          </div>
+
+          <div id="upi-send-error" class="alert alert-error" style="display:none;margin-bottom:1rem;">
+            <span class="alert-icon">❌</span><span></span>
+          </div>
+
+          <button class="btn btn-primary btn-full" id="upi-send-btn" onclick="sendUPI()">
+            ⚡ Send via UPI
+          </button>
+        </div>
+
+        <!-- UPI Stats & Info -->
+        <div style="display:flex;flex-direction:column;gap:1.5rem;">
+
+          <!-- Quick Info -->
+          <div class="card" style="
+            background:linear-gradient(135deg,#081a2e,#050d1e);
+            border-color:rgba(0,212,200,0.15);
+          ">
+            <div class="card-title" style="margin-bottom:1rem;">⚡ UPI Quick Facts</div>
+            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.875rem;color:var(--text-second);">Max per transaction</span>
+                <span style="font-weight:700;color:var(--teal);">₹1,00,000</span>
+              </div>
+              <div style="height:1px;background:var(--border);"></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.875rem;color:var(--text-second);">Daily limit</span>
+                <span style="font-weight:700;color:var(--teal);">₹10,00,000</span>
+              </div>
+              <div style="height:1px;background:var(--border);"></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.875rem;color:var(--text-second);">Transaction fee</span>
+                <span style="font-weight:700;color:var(--green);">Free</span>
+              </div>
+              <div style="height:1px;background:var(--border);"></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.875rem;color:var(--text-second);">Settlement time</span>
+                <span style="font-weight:700;color:var(--gold);">Instant</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- UPI Transfers Card -->
+          <div class="card" style="flex:1;">
+            <div class="card-header">
+              <div class="card-title">Recent UPI Activity</div>
+            </div>
+            <div id="upi-recent-txns">
+              <div class="skeleton" style="height:56px;margin-bottom:6px;"></div>
+              <div class="skeleton" style="height:56px;margin-bottom:6px;"></div>
+              <div class="skeleton" style="height:56px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  const { Auth, API, Fmt, Toast, Form, confirmDialog } = window.Payfin;
+
+  let accounts = [];
+  let resolveTimer = null;
+
+  async function init() {
+    if (!Auth.isLoggedIn()) { window.location.href = '/login'; return; }
+
+    const me = await API.get('/api/auth/me');
+    if (!me?.ok) { window.location.href = '/login'; return; }
+    const user = me.data.user;
+    document.querySelectorAll('[data-user-name]').forEach(el => el.textContent = user.full_name);
+    document.querySelectorAll('[data-user-initials]').forEach(el => el.textContent = Fmt.initials(user.full_name));
+    document.querySelectorAll('[data-sidebar-upi]').forEach(el => el.textContent = user.upi_id || '—');
+
+    // Show UPI ID
+    document.getElementById('upi-id-text').textContent = user.upi_id || '—';
+
+    await loadAccounts();
+    await loadUPITransactions();
+  }
+
+  async function loadAccounts() {
+    const res = await API.get('/api/accounts');
+    if (!res?.ok) return;
+    accounts = res.data.accounts || [];
+    const sel = document.getElementById('upi-from-account');
+    sel.innerHTML = accounts.map(a =>
+      `<option value="${a.id}">${a.account_type} — ${Fmt.currency(a.balance)}</option>`
+    ).join('');
+  }
+
+  async function loadUPITransactions() {
+    const res = await API.get('/api/transactions?limit=50');
+    if (!res?.ok) return;
+
+    const upiTxns = (res.data.transactions || []).filter(t => t.txn_category === 'UPI');
+    document.getElementById('upi-txn-count').textContent = upiTxns.length;
+
+    const container = document.getElementById('upi-recent-txns');
+    if (!upiTxns.length) {
+      container.innerHTML = `
+        <div class="empty-state" style="padding:2rem;">
+          <div class="empty-state-icon">⚡</div>
+          <div class="empty-state-title">No UPI transactions yet</div>
+          <div class="empty-state-desc">Send your first UPI payment above</div>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = upiTxns.slice(0, 6).map(t => {
+      const isCredit = t.txn_type === 'CREDIT';
+      return `
+        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--border);">
+          <div class="txn-icon upi">⚡</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.875rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.description || '—'}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">${Fmt.dateTime(t.created_at)}</div>
+          </div>
+          <div class="txn-amount ${isCredit ? 'credit' : 'debit'}" style="font-size:0.875rem;">
+            ${isCredit ? '+' : '−'}${Fmt.currency(t.amount)}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  let resolveAbort = null;
+  async function resolveUPI() {
+    clearTimeout(resolveTimer);
+    const statusEl = document.getElementById('upi-resolve-status');
+    const nameEl = document.getElementById('upi-resolved-name');
+    const upiId = document.getElementById('upi-to').value.trim();
+
+    if (!upiId.includes('@')) {
+      statusEl.textContent = '';
+      nameEl.style.display = 'none';
+      return;
+    }
+
+    statusEl.textContent = '...';
+    statusEl.style.color = 'var(--text-muted)';
+
+    resolveTimer = setTimeout(async () => {
+      const res = await API.get(`/api/upi/lookup/${encodeURIComponent(upiId)}`);
+      if (res?.ok && res.data.success) {
+        statusEl.textContent = '✓';
+        statusEl.style.color = 'var(--green)';
+        nameEl.textContent = `✓ ${res.data.name}`;
+        nameEl.style.display = 'block';
+        nameEl.style.color = 'var(--green)';
+      } else {
+        statusEl.textContent = '✗';
+        statusEl.style.color = 'var(--red)';
+        nameEl.textContent = 'UPI ID not found';
+        nameEl.style.display = 'block';
+        nameEl.style.color = 'var(--red)';
+      }
+    }, 600);
+  }
+
+  function setAmount(val) {
+    document.getElementById('upi-amount').value = val;
+  }
+
+  async function sendUPI() {
+    const fromAccId = document.getElementById('upi-from-account').value;
+    const toUpi     = document.getElementById('upi-to').value.trim();
+    const amount    = document.getElementById('upi-amount').value;
+    const note      = document.getElementById('upi-note').value.trim();
+    const errEl     = document.getElementById('upi-send-error');
+    const btn       = document.getElementById('upi-send-btn');
+
+    errEl.style.display = 'none';
+
+    if (!toUpi) { errEl.querySelector('span:last-child').textContent = 'Enter a UPI ID.'; errEl.style.display = 'flex'; return; }
+    if (!amount || parseFloat(amount) <= 0) { errEl.querySelector('span:last-child').textContent = 'Enter a valid amount.'; errEl.style.display = 'flex'; return; }
+
+    const acc = accounts.find(a => a.id == fromAccId);
+    const amtF = Fmt.currency(parseFloat(amount));
+
+    confirmDialog(
+      '⚡ Confirm UPI Payment',
+      `Send <strong>${amtF}</strong> to <strong style="color:var(--teal)">${toUpi}</strong>?<br><small style="color:var(--text-muted);">This action cannot be undone.</small>`,
+      async () => {
+        Form.setLoading(btn, true);
+        const res = await API.post('/api/upi/send', {
+          from_account_id: parseInt(fromAccId),
+          to_upi_id: toUpi,
+          amount: parseFloat(amount),
+          note,
+        });
+        Form.setLoading(btn, false);
+
+        if (res?.ok && res.data.success) {
+          Toast.success('UPI Payment Sent! ⚡', `${amtF} sent to ${toUpi}. Ref: ${res.data.reference_id}`);
+          document.getElementById('upi-to').value = '';
+          document.getElementById('upi-amount').value = '';
+          document.getElementById('upi-note').value = '';
+          document.getElementById('upi-resolve-status').textContent = '';
+          document.getElementById('upi-resolved-name').style.display = 'none';
+          await loadAccounts();
+          await loadUPITransactions();
+        } else {
+          const msg = res?.data?.error || 'UPI payment failed.';
+          errEl.querySelector('span:last-child').textContent = msg;
+          errEl.style.display = 'flex';
+        }
+      }
+    );
+  }
+
+  function copyUPI() {
+    const upiId = document.getElementById('upi-id-text').textContent;
+    window.Payfin.copyToClipboard(upiId, 'UPI ID copied!');
+  }
+
+  function signOut() {
+    confirmDialog('Sign Out', 'Are you sure?', async () => {
+      await API.post('/api/auth/logout');
+      Auth.removeToken();
+      window.location.href = '/login';
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+{% endblock %}

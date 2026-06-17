@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}Create Account — Payfin{% endblock %}
+{% block meta_description %}Open a free Payfin account in 60 seconds. Get your unique UPI handle and start banking instantly.{% endblock %}
+{% block body %}
+
+<div class="auth-page">
+  <!-- Left Panel -->
+  <div class="auth-left">
+    <div class="auth-left-bg"></div>
+    <div style="position:relative;z-index:1;">
+      <div class="logo-mark" style="margin-bottom:3rem;">
+        <div class="logo-icon" style="width:48px;height:48px;font-size:1.4rem;">V</div>
+        <div class="logo-text">
+          <span class="logo-name" style="font-size:1.4rem;">Payfin</span>
+          <span class="logo-tagline">Financial Technologies</span>
+        </div>
+      </div>
+
+      <h2 style="font-size:2rem;margin-bottom:1rem;line-height:1.2;">
+        Get Your Free<br>
+        <span class="text-gradient">@payfin</span><br>
+        UPI Handle
+      </h2>
+      <p style="color:var(--text-second);line-height:1.7;margin-bottom:2.5rem;">
+        Open your Payfin account in under 60 seconds and receive your
+        personal UPI handle. Start sending money instantly!
+      </p>
+
+      <!-- UPI preview box -->
+      <div style="
+        background:rgba(0,212,200,0.05);
+        border:1px solid rgba(0,212,200,0.2);
+        border-radius:var(--radius-lg);
+        padding:1.5rem;
+        margin-bottom:2rem;
+      ">
+        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:0.75rem;">YOUR UPI ID WILL BE</div>
+        <div id="upi-preview-left" style="
+          font-family:var(--font-mono);
+          font-size:1.2rem;
+          font-weight:700;
+          color:var(--teal);
+          min-height:2rem;
+        ">yourname@payfin</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">
+          Works with all UPI apps in India
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;font-size:0.875rem;">
+          <span style="color:var(--teal);">⚡</span>
+          <span style="color:var(--text-second);">Free account — no monthly fees</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem;font-size:0.875rem;">
+          <span style="color:var(--teal);">🔐</span>
+          <span style="color:var(--text-second);">bcrypt encrypted passwords</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem;font-size:0.875rem;">
+          <span style="color:var(--teal);">🏦</span>
+          <span style="color:var(--text-second);">Link up to 5 bank accounts</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel — Register Form -->
+  <div class="auth-right" style="flex:0 0 520px;padding:2rem;">
+    <div class="logo-mark auth-logo" style="display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;">
+      <div class="logo-icon">V</div>
+      <div class="logo-text"><span class="logo-name">Payfin</span></div>
+    </div>
+
+    <h2 class="auth-title">Create your account</h2>
+    <p class="auth-subtitle">Free forever. No credit card required.</p>
+
+    <!-- Error/Success boxes -->
+    <div id="register-error" class="alert alert-error" style="display:none;margin-bottom:1rem;">
+      <span class="alert-icon">❌</span>
+      <span></span>
+    </div>
+    <div id="register-success" class="alert alert-success" style="display:none;margin-bottom:1rem;">
+    </div>
+
+    <form id="register-form" method="post" action="javascript:void(0)" novalidate autocomplete="on">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="full_name">Full Name *</label>
+          <input id="full_name" name="full_name" class="form-input" type="text"
+            placeholder="Rahul Sharma" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="username">Username *</label>
+          <input id="username" name="username" class="form-input" type="text"
+            placeholder="rahul123" autocomplete="username" pattern="[a-zA-Z0-9_]+">
+        </div>
+      </div>
+
+      <!-- UPI Preview -->
+      <div id="upi-preview-box" style="
+        background:var(--teal-faint);border:1px solid rgba(0,212,200,0.15);
+        border-radius:var(--radius-sm);padding:0.5rem 0.75rem;
+        margin-top:-0.75rem;margin-bottom:1rem;font-size:0.78rem;
+        color:var(--teal);display:flex;align-items:center;gap:6px;
+      ">
+        <span>⚡</span>
+        <span>Your UPI ID: <strong id="upi-preview" style="font-family:var(--font-mono);">username@payfin</strong></span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address *</label>
+        <div class="input-group">
+          <span class="input-prefix">✉️</span>
+          <input id="email" name="email" class="form-input" type="email"
+            placeholder="rahul@example.com" autocomplete="email" style="padding-left:2.5rem;">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="phone">Phone Number</label>
+        <div class="input-group">
+          <span class="input-prefix">📱</span>
+          <input id="phone" name="phone" class="form-input" type="tel"
+            placeholder="+91 98765 43210" autocomplete="tel" style="padding-left:2.5rem;">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="account_type">Account Type *</label>
+        <select id="account_type" name="account_type" class="form-select">
+          <option value="Savings">Savings Account</option>
+          <option value="Checking">Checking Account</option>
+          <option value="Current">Current Account</option>
+          <option value="Premium Savings">Premium Savings Account</option>
+        </select>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="password">Password *</label>
+          <div class="input-group" style="position:relative;">
+            <span class="input-prefix">🔒</span>
+            <input id="password" name="password" class="form-input" type="password"
+              placeholder="Min. 8 chars" autocomplete="new-password" style="padding-left:2.5rem;padding-right:2.5rem;">
+            <button type="button" id="pwd-toggle" class="password-toggle">👁️</button>
+          </div>
+          <!-- Strength meter -->
+          <div id="strength-meter" class="password-strength" style="margin-top:0.5rem;">
+            <div class="strength-bar">
+              <div class="strength-segment"></div>
+              <div class="strength-segment"></div>
+              <div class="strength-segment"></div>
+              <div class="strength-segment"></div>
+            </div>
+            <div class="strength-label"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="confirm_password">Confirm Password *</label>
+          <div class="input-group" style="position:relative;">
+            <span class="input-prefix">🔒</span>
+            <input id="confirm_password" name="confirm_password" class="form-input" type="password"
+              placeholder="Re-enter password" autocomplete="new-password" style="padding-left:2.5rem;padding-right:2.5rem;">
+            <button type="button" id="cpwd-toggle" class="password-toggle">👁️</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="
+        background:var(--bg-surface);border:1px solid var(--border);
+        border-radius:var(--radius-md);padding:0.75rem 1rem;
+        font-size:0.78rem;color:var(--text-muted);margin-bottom:1.25rem;
+        line-height:1.6;
+      ">
+        🔐 Password must contain: 8+ characters, 1 uppercase letter, 1 digit, 1 special character
+      </div>
+
+      <button id="register-btn" type="submit" class="btn btn-primary btn-full btn-xl">
+        Create Free Account →
+      </button>
+    </form>
+
+    <div class="auth-switch">
+      Already have an account?
+      <a href="/login" style="font-weight:600;">Sign in →</a>
+    </div>
+
+    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);text-align:center;">
+      <div style="font-size:0.72rem;color:var(--text-muted);line-height:1.6;">
+        By creating an account, you agree to Payfin's Terms of Service and Privacy Policy.<br>
+        © 2025 Payfin
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script src="/static/js/auth.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Sync left panel UPI preview with username input (set up after auth.js)
+    document.getElementById('username')?.addEventListener('input', (e) => {
+      const val = e.target.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+      const el  = document.getElementById('upi-preview-left');
+      if (el) el.textContent = val ? `${val}@payfin` : 'yourname@payfin';
+    });
+  });
+</script>
+{% endblock %}

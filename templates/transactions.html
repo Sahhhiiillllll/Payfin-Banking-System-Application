@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Transactions — Payfin{% endblock %}
+{% block body %}
+
+<div class="app-shell">
+  {% set active_page = 'transactions' %}
+  {% include "sidebar.html" %}
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="page-title">Transaction History</div>
+        <div class="page-subtitle">Complete ledger of all your transactions</div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-time" id="topbar-clock">--:--:--</div>
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()">📥 Export CSV</button>
+      </div>
+    </header>
+
+    <main class="page-area">
+
+      <!-- Filter + Search Row -->
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+        <div class="filter-tabs" id="filter-tabs">
+          <button class="filter-tab active" data-cat="all"    onclick="filterTxns('all',this)">All</button>
+          <button class="filter-tab"        data-cat="BANK"   onclick="filterTxns('BANK',this)">Bank</button>
+          <button class="filter-tab"        data-cat="UPI"    onclick="filterTxns('UPI',this)">UPI</button>
+          <button class="filter-tab"        data-cat="PAYMENT" onclick="filterTxns('PAYMENT',this)">Payments</button>
+        </div>
+
+        <div style="flex:1;min-width:200px;">
+          <div class="input-group">
+            <span class="input-prefix">🔍</span>
+            <input id="search-input" class="form-input" type="text"
+              placeholder="Search transactions..." oninput="searchTxns()"
+              style="padding-left:2.5rem;">
+          </div>
+        </div>
+
+        <div>
+          <select id="account-filter" class="form-select" onchange="loadTxns()" style="min-width:200px;">
+            <option value="">All Accounts</option>
+          </select>
+        </div>
+
+        <div>
+          <select id="limit-filter" class="form-select" onchange="loadTxns()">
+            <option value="50">Last 50</option>
+            <option value="100" selected>Last 100</option>
+            <option value="200">Last 200</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Summary Row -->
+      <div class="stats-grid" style="margin-bottom:1.5rem;" id="txn-summary">
+        <div class="stat-card">
+          <div class="stat-label">Total Credits</div>
+          <div class="stat-value text-green" id="total-credits">₹0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Debits</div>
+          <div class="stat-value text-red" id="total-debits">₹0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Net Flow</div>
+          <div class="stat-value" id="net-flow">₹0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Transactions</div>
+          <div class="stat-value text-teal" id="txn-count-display">0</div>
+        </div>
+      </div>
+
+      <!-- Transactions Table -->
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <div class="card-title">Transactions</div>
+          <div id="txn-count-badge" class="badge badge-teal">0 records</div>
+        </div>
+        <div class="table-container" style="border:none;border-radius:0;">
+          <table class="data-table" id="txn-table">
+            <thead>
+              <tr>
+                <th style="padding-left:1.5rem;">Reference</th>
+                <th>Date & Time</th>
+                <th>Description</th>
+                <th>Category</th>
+                <th>Type</th>
+                <th style="text-align:right;">Amount</th>
+                <th style="text-align:right;padding-right:1.5rem;">Balance</th>
+              </tr>
+            </thead>
+            <tbody id="txn-tbody">
+              <tr>
+                <td colspan="7" style="text-align:center;padding:3rem;">
+                  <div class="spinner" style="margin:0 auto;"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  const { Auth, API, Fmt, Toast } = window.Payfin;
+
+  let allTxns = [];
+  let filtered = [];
+  let activeCategory = 'all';
+  let accounts = [];
+
+  async function init() {
+    if (!Auth.isLoggedIn()) { window.location.href = '/login'; return; }
+
+    // Load user info
+    const me = await API.get('/api/auth/me');
+    if (!me?.ok) { window.location.href = '/login'; return; }
+    const user = me.data.user;
+    document.querySelectorAll('[data-user-name]').forEach(el => el.textContent = user.full_name);
+    document.querySelectorAll('[data-user-initials]').forEach(el => el.textContent = Fmt.initials(user.full_name));
+    document.querySelectorAll('[data-sidebar-upi]').forEach(el => el.textContent = user.upi_id || '—');
+
+    // Load accounts for filter
+    const accRes = await API.get('/api/accounts');
+    if (accRes?.ok) {
+      accounts = accRes.data.accounts || [];
+      const sel = document.getElementById('account-filter');
+      accounts.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        opt.textContent = `${a.account_type} (${Fmt.accountNo(a.account_no)})`;
+        sel.appendChild(opt);
+      });
+    }
+
+    await loadTxns();
+  }
+
+  async function loadTxns() {
+    const limit = document.getElementById('limit-filter').value;
+    const accId = document.getElementById('account-filter').value;
+
+    let url;
+    if (accId) {
+      url = `/api/transactions/account/${accId}?limit=${limit}`;
+    } else {
+      url = `/api/transactions?limit=${limit}`;
+    }
+
+    const result = await API.get(url);
+    if (!result?.ok) return;
+
+    allTxns = result.data.transactions || [];
+    applyFilter();
+  }
+
+  function filterTxns(cat, btn) {
+    activeCategory = cat;
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilter();
+  }
+
+  function searchTxns() { applyFilter(); }
+
+  function applyFilter() {
+    const search = document.getElementById('search-input').value.toLowerCase();
+    filtered = allTxns.filter(t => {
+      if (activeCategory !== 'all' && t.txn_category !== activeCategory) return false;
+      if (search && !(
+        (t.description || '').toLowerCase().includes(search) ||
+        (t.reference_id || '').toLowerCase().includes(search) ||
+        (t.counterparty || '').toLowerCase().includes(search)
+      )) return false;
+      return true;
+    });
+    renderTable();
+    renderSummary();
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('txn-tbody');
+    document.getElementById('txn-count-badge').textContent = `${filtered.length} records`;
+
+    if (!filtered.length) {
+      tbody.innerHTML = `
+        <tr><td colspan="7">
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <div class="empty-state-title">No transactions found</div>
+            <div class="empty-state-desc">Try adjusting your filters</div>
+          </div>
+        </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(t => {
+      const isCredit = t.txn_type === 'CREDIT';
+      const catClass = t.txn_category === 'UPI' ? 'teal' : t.txn_category === 'PAYMENT' ? 'blue' : (isCredit ? 'green' : 'red');
+      const catIcon  = t.txn_category === 'UPI' ? '⚡' : t.txn_category === 'PAYMENT' ? '💳' : (isCredit ? '↓' : '↑');
+
+      return `
+        <tr>
+          <td style="padding-left:1.5rem;">
+            <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted);">${Fmt.referenceId(t.reference_id)}</span>
+          </td>
+          <td style="white-space:nowrap;font-size:0.8rem;color:var(--text-second);">${Fmt.dateTime(t.created_at)}</td>
+          <td>
+            <div style="font-weight:500;font-size:0.875rem;">${t.description || '—'}</div>
+            ${t.counterparty ? `<div style="font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono);">→ ${t.counterparty}</div>` : ''}
+          </td>
+          <td><span class="txn-badge ${t.txn_category === 'UPI' ? 'upi' : t.txn_category === 'PAYMENT' ? 'payment' : (isCredit ? 'credit' : 'debit')}">${t.txn_category}</span></td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div class="txn-icon ${isCredit ? 'credit' : 'debit'}" style="width:28px;height:28px;font-size:0.75rem;">${catIcon}</div>
+              <span style="font-size:0.8rem;color:var(--text-second);">${isCredit ? 'Credit' : 'Debit'}</span>
+            </div>
+          </td>
+          <td style="text-align:right;">
+            <div class="txn-amount ${isCredit ? 'credit' : 'debit'}" style="font-size:0.9rem;">${isCredit ? '+' : '−'}${Fmt.currency(t.amount)}</div>
+          </td>
+          <td style="text-align:right;padding-right:1.5rem;font-family:var(--font-mono);font-size:0.8rem;color:var(--text-second);">${Fmt.currency(t.balance_after)}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  function renderSummary() {
+    const credits = filtered.filter(t => t.txn_type === 'CREDIT').reduce((s, t) => s + t.amount, 0);
+    const debits  = filtered.filter(t => t.txn_type === 'DEBIT').reduce((s, t) => s + t.amount, 0);
+    const net = credits - debits;
+
+    document.getElementById('total-credits').textContent = Fmt.currency(credits);
+    document.getElementById('total-debits').textContent  = Fmt.currency(debits);
+    document.getElementById('net-flow').textContent      = Fmt.currency(net);
+    document.getElementById('net-flow').style.color      = net >= 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('txn-count-display').textContent = filtered.length;
+  }
+
+  function exportCSV() {
+    if (!filtered.length) { Toast.warning('Nothing to export'); return; }
+    const headers = ['Reference', 'Date', 'Description', 'Category', 'Type', 'Amount', 'Balance After'];
+    const rows = filtered.map(t => [
+      t.reference_id || '', t.created_at || '',
+      `"${(t.description || '').replace(/"/g, '""')}"`,
+      t.txn_category, t.txn_type,
+      (t.txn_type === 'CREDIT' ? '+' : '-') + t.amount,
+      t.balance_after
+    ]);
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `payfin_transactions_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+    Toast.success('Exported!', `${filtered.length} transactions downloaded.`);
+  }
+
+  function signOut() {
+    window.Payfin.confirmDialog('Sign Out', 'Are you sure you want to sign out?', async () => {
+      await API.post('/api/auth/logout');
+      Auth.removeToken();
+      window.location.href = '/login';
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+{% endblock %}

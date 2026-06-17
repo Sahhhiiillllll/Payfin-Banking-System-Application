@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% block title %}Linked Bank Accounts — Payfin{% endblock %}
+{% block body %}
+
+<div class="app-shell">
+  {% set active_page = 'linked-accounts' %}
+  {% include "sidebar.html" %}
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="page-title">Linked Bank Accounts</div>
+        <div class="page-subtitle">Connect and manage your external bank accounts</div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-time" id="topbar-clock">--:--:--</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Link Bank Account</button>
+      </div>
+    </header>
+
+    <main class="page-area">
+
+      <!-- Info Banner -->
+      <div class="alert alert-info" style="margin-bottom:1.5rem;">
+        <span class="alert-icon">ℹ️</span>
+        <div>
+          <strong>Bank Account Verification:</strong> In production, accounts are verified via micro-deposit (₹1 test credit) or penny drop method. Demo accounts are auto-verified.
+        </div>
+      </div>
+
+      <!-- Supported Banks -->
+      <div class="card" style="margin-bottom:1.5rem;padding:1.25rem 1.5rem;">
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);flex-shrink:0;">Supported Banks:</div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            {% for bank in ['SBI', 'HDFC', 'ICICI', 'Axis', 'Kotak', 'BOB', 'Canara', 'PNB', 'Yes Bank', 'IDBI', 'IndusInd', 'Federal'] %}
+            <span class="badge badge-teal" style="font-size:0.7rem;">{{ bank }}</span>
+            {% endfor %}
+            <span class="badge badge-blue" style="font-size:0.7rem;">+ 50 more</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Linked Accounts Grid -->
+      <div style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="font-size:1rem;color:var(--text-primary);">Your Linked Accounts</h3>
+        <span class="badge badge-teal" id="linked-count">0 linked</span>
+      </div>
+
+      <div id="linked-accounts-grid" style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:2rem;">
+        <div class="skeleton" style="height:90px;border-radius:var(--radius-lg);"></div>
+        <div class="skeleton" style="height:90px;border-radius:var(--radius-lg);"></div>
+      </div>
+
+      <!-- Add New Prompt (shown when no accounts) -->
+      <div id="empty-linked" style="display:none;">
+        <div class="empty-state" style="border:2px dashed var(--border);border-radius:var(--radius-xl);padding:4rem 2rem;">
+          <div class="empty-state-icon">🏦</div>
+          <div class="empty-state-title">No bank accounts linked</div>
+          <div class="empty-state-desc">Link your first bank account to enable transfers and payments</div>
+          <button class="btn btn-primary" style="margin-top:1.5rem;" onclick="openAddModal()">+ Link Bank Account</button>
+        </div>
+      </div>
+
+      <!-- IFSC Help -->
+      <div class="card" style="background:var(--bg-surface);">
+        <div class="card-title" style="margin-bottom:1rem;">💡 How to find your IFSC code</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;font-size:0.875rem;color:var(--text-second);">
+          <div style="display:flex;gap:0.75rem;">
+            <span style="color:var(--teal);flex-shrink:0;">📄</span>
+            <div><strong style="color:var(--text-primary);">Cheque Book</strong><br>Printed at the bottom of your cheque leaf</div>
+          </div>
+          <div style="display:flex;gap:0.75rem;">
+            <span style="color:var(--teal);flex-shrink:0;">📱</span>
+            <div><strong style="color:var(--text-primary);">Bank App</strong><br>Settings → Account Details → Branch IFSC</div>
+          </div>
+          <div style="display:flex;gap:0.75rem;">
+            <span style="color:var(--teal);flex-shrink:0;">💳</span>
+            <div><strong style="color:var(--text-primary);">Passbook</strong><br>First page of your bank passbook</div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Add Linked Account Modal -->
+<div id="add-modal" style="display:none;">
+  <div class="modal-overlay" onclick="if(event.target===this)closeAddModal()">
+    <div class="modal" style="max-width:520px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🔗 Link Bank Account</h3>
+        <button class="modal-close" onclick="closeAddModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="add-error" class="alert alert-error" style="display:none;margin-bottom:1rem;">
+          <span class="alert-icon">❌</span><span></span>
+        </div>
+        <div id="add-success" class="alert alert-success" style="display:none;margin-bottom:1rem;">
+          <span class="alert-icon">✅</span><span></span>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group" style="grid-column:1/-1;">
+            <label class="form-label">Bank Name *</label>
+            <select id="add-bank-name" class="form-select">
+              <option value="">Select your bank</option>
+              <option value="State Bank of India">State Bank of India (SBI)</option>
+              <option value="HDFC Bank">HDFC Bank</option>
+              <option value="ICICI Bank">ICICI Bank</option>
+              <option value="Axis Bank">Axis Bank</option>
+              <option value="Kotak Mahindra Bank">Kotak Mahindra Bank</option>
+              <option value="Bank of Baroda">Bank of Baroda</option>
+              <option value="Canara Bank">Canara Bank</option>
+              <option value="Punjab National Bank">Punjab National Bank</option>
+              <option value="Yes Bank">Yes Bank</option>
+              <option value="IDBI Bank">IDBI Bank</option>
+              <option value="IndusInd Bank">IndusInd Bank</option>
+              <option value="Federal Bank">Federal Bank</option>
+              <option value="Union Bank of India">Union Bank of India</option>
+              <option value="Indian Bank">Indian Bank</option>
+              <option value="Other">Other Bank</option>
+            </select>
+          </div>
+          <div class="form-group" style="grid-column:1/-1;">
+            <label class="form-label">Account Holder Name *</label>
+            <input id="add-holder" class="form-input" type="text" placeholder="As per bank records">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Account Number *</label>
+            <input id="add-acc-no" class="form-input" type="text" placeholder="9–18 digit number" maxlength="18">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm Account Number *</label>
+            <input id="add-acc-no-confirm" class="form-input" type="text" placeholder="Re-enter account number" maxlength="18">
+          </div>
+          <div class="form-group">
+            <label class="form-label">IFSC Code *</label>
+            <input id="add-ifsc" class="form-input" type="text" placeholder="e.g. SBIN0001234" maxlength="11"
+              oninput="this.value=this.value.toUpperCase()">
+            <div class="form-hint">11-character code (e.g. HDFC0001234)</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Account Type *</label>
+            <select id="add-acc-type" class="form-select">
+              <option value="Savings">Savings Account</option>
+              <option value="Current">Current Account</option>
+              <option value="Salary">Salary Account</option>
+              <option value="Fixed Deposit">Fixed Deposit</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="
+          background:var(--gold-faint);border:1px solid rgba(245,197,66,0.2);
+          border-radius:var(--radius-md);padding:0.75rem 1rem;font-size:0.8rem;
+          color:var(--gold);display:flex;gap:0.75rem;align-items:flex-start;
+        ">
+          <span style="flex-shrink:0;">🔐</span>
+          <div>Your bank details are encrypted and never shared. Payfin uses read-only access for verification purposes only.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeAddModal()">Cancel</button>
+        <button class="btn btn-primary" id="add-submit-btn" onclick="submitLinkedAccount()">Link Account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const { Auth, API, Fmt, Toast, Form, confirmDialog } = window.Payfin;
+
+  async function init() {
+    if (!Auth.isLoggedIn()) { window.location.href = '/login'; return; }
+
+    const me = await API.get('/api/auth/me');
+    if (!me?.ok) { window.location.href = '/login'; return; }
+    const user = me.data.user;
+    document.querySelectorAll('[data-user-name]').forEach(el => el.textContent = user.full_name);
+    document.querySelectorAll('[data-user-initials]').forEach(el => el.textContent = Fmt.initials(user.full_name));
+    document.querySelectorAll('[data-sidebar-upi]').forEach(el => el.textContent = user.upi_id || '—');
+
+    await loadLinkedAccounts();
+  }
+
+  async function loadLinkedAccounts() {
+    const res = await API.get('/api/linked-accounts');
+    if (!res?.ok) return;
+
+    const accounts = res.data.linked_accounts || [];
+    const grid = document.getElementById('linked-accounts-grid');
+    const empty = document.getElementById('empty-linked');
+
+    document.getElementById('linked-count').textContent = `${accounts.length} linked`;
+
+    if (!accounts.length) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+
+    empty.style.display = 'none';
+
+    const bankInitials = name => {
+      const words = name.split(' ');
+      if (words.length >= 2) return words[0][0] + words[1][0];
+      return name.slice(0, 2).toUpperCase();
+    };
+
+    const bankColor = name => {
+      const colors = {
+        'SBI': '#2e8b57', 'State Bank': '#2e8b57',
+        'HDFC': '#004c8c', 'ICICI': '#f26522',
+        'Axis': '#97144d', 'Kotak': '#ed2025',
+        'Canara': '#0072bc', 'PNB': '#dc143c',
+        'Yes': '#006db7', 'IndusInd': '#00599d',
+      };
+      for (const [k, v] of Object.entries(colors)) {
+        if (name.includes(k)) return v;
+      }
+      return '#374151';
+    };
+
+    grid.innerHTML = accounts.map(acc => `
+      <div class="bank-card hover-lift" id="bank-card-${acc.id}">
+        <div class="bank-logo" style="background:${bankColor(acc.bank_name)}22;color:${bankColor(acc.bank_name)};border-color:${bankColor(acc.bank_name)}33;">
+          ${bankInitials(acc.bank_name)}
+        </div>
+        <div class="bank-info">
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:4px;">
+            <div class="bank-name">${acc.bank_name}</div>
+            ${acc.is_primary ? '<span class="primary-badge">Primary</span>' : ''}
+            ${acc.is_verified ? '<span class="badge badge-green" style="font-size:0.6rem;">✓ Verified</span>' : '<span class="badge badge-gold" style="font-size:0.6rem;">Pending</span>'}
+          </div>
+          <div class="bank-acc-no">•••• •••• ${acc.account_no.slice(-4)}</div>
+          <div style="display:flex;gap:0.5rem;margin-top:4px;align-items:center;">
+            <span class="bank-type-badge">${acc.account_type}</span>
+            <span style="font-size:0.7rem;color:var(--text-muted);">${acc.account_holder}</span>
+            <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);">${acc.ifsc_code}</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;flex-shrink:0;">
+          <button class="btn btn-ghost btn-sm" onclick="removeLinked(${acc.id}, '${acc.bank_name}')" style="color:var(--red);border-color:rgba(239,68,68,0.2);">Remove</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function openAddModal() {
+    document.getElementById('add-modal').style.display = 'block';
+    setTimeout(() => document.getElementById('add-holder')?.focus(), 100);
+  }
+
+  function closeAddModal() {
+    document.getElementById('add-modal').style.display = 'none';
+    document.getElementById('add-error').style.display = 'none';
+    document.getElementById('add-success').style.display = 'none';
+    ['add-bank-name','add-holder','add-acc-no','add-acc-no-confirm','add-ifsc'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = el.tagName === 'SELECT' ? el.options[0]?.value || '' : '';
+    });
+  }
+
+  async function submitLinkedAccount() {
+    const bankName     = document.getElementById('add-bank-name').value;
+    const holder       = document.getElementById('add-holder').value.trim();
+    const accNo        = document.getElementById('add-acc-no').value.trim();
+    const accNoConfirm = document.getElementById('add-acc-no-confirm').value.trim();
+    const ifsc         = document.getElementById('add-ifsc').value.trim().toUpperCase();
+    const accType      = document.getElementById('add-acc-type').value;
+    const errEl        = document.getElementById('add-error');
+    const sucEl        = document.getElementById('add-success');
+    const btn          = document.getElementById('add-submit-btn');
+
+    errEl.style.display = 'none';
+
+    if (!bankName) { errEl.querySelector('span:last-child').textContent = 'Please select a bank.'; errEl.style.display = 'flex'; return; }
+    if (!holder)   { errEl.querySelector('span:last-child').textContent = 'Account holder name is required.'; errEl.style.display = 'flex'; return; }
+    if (!accNo)    { errEl.querySelector('span:last-child').textContent = 'Account number is required.'; errEl.style.display = 'flex'; return; }
+    if (accNo !== accNoConfirm) { errEl.querySelector('span:last-child').textContent = 'Account numbers do not match.'; errEl.style.display = 'flex'; return; }
+    if (!ifsc)     { errEl.querySelector('span:last-child').textContent = 'IFSC code is required.'; errEl.style.display = 'flex'; return; }
+
+    Form.setLoading(btn, true);
+    const res = await API.post('/api/linked-accounts/add', {
+      bank_name: bankName,
+      account_holder: holder,
+      account_no: accNo,
+      ifsc_code: ifsc,
+      account_type: accType,
+    });
+    Form.setLoading(btn, false);
+
+    if (res?.ok && res.data.success) {
+      sucEl.querySelector('span:last-child').textContent = '✅ Bank account linked successfully! Verification is instant for demo.';
+      sucEl.style.display = 'flex';
+      Toast.success('Account Linked!', `${bankName} account added successfully.`);
+      setTimeout(() => { closeAddModal(); loadLinkedAccounts(); }, 1500);
+    } else {
+      errEl.querySelector('span:last-child').textContent = res?.data?.error || 'Failed to link account.';
+      errEl.style.display = 'flex';
+    }
+  }
+
+  async function removeLinked(id, bankName) {
+    confirmDialog(
+      'Remove Linked Account',
+      `Remove <strong>${bankName}</strong> from your linked accounts?`,
+      async () => {
+        const res = await API.delete(`/api/linked-accounts/${id}`);
+        if (res?.ok && res.data.success) {
+          Toast.success('Account removed', `${bankName} has been unlinked.`);
+          document.getElementById(`bank-card-${id}`)?.remove();
+          await loadLinkedAccounts();
+        } else {
+          Toast.error('Failed', 'Could not remove account.');
+        }
+      },
+      true
+    );
+  }
+
+  function signOut() {
+    confirmDialog('Sign Out', 'Are you sure?', async () => {
+      await API.post('/api/auth/logout');
+      Auth.removeToken();
+      window.location.href = '/login';
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+{% endblock %}

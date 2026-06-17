@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(timeout 10 /usr/bin/python3 app.py)",
+      "Bash(/usr/bin/python3 app.py)",
+      "Bash(curl -s http://localhost:8000/)",
+      "Bash(pwd && ls -la app.py)",
+      "Read(//Users/sahil/Documents/interns 2026 /interninfobyte/Banking System /**)"
+    ]
+  }
+}

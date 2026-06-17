@@ -1,0 +1,72 @@
+<!-- Sidebar — included in all app pages -->
+<aside class="sidebar" id="sidebar">
+  <!-- Logo -->
+  <div class="sidebar-logo">
+    <a href="/dashboard" class="logo-mark" style="text-decoration:none;">
+      <div class="logo-icon">V</div>
+      <div class="logo-text">
+        <span class="logo-name">Payfin</span>
+        <span class="logo-tagline">Financial Technologies</span>
+      </div>
+    </a>
+  </div>
+
+  <!-- User Chip -->
+  <div class="user-chip" onclick="window.location.href='/security'">
+    <div class="user-avatar" data-user-initials>?</div>
+    <div class="user-info">
+      <div class="user-name" data-user-name>Loading...</div>
+      <div class="user-handle" data-sidebar-upi>—</div>
+    </div>
+    <span style="color:var(--text-muted);font-size:0.8rem;">⚙</span>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav-section">
+    <div class="nav-section-label">Main Menu</div>
+
+    <a href="/dashboard" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}" id="nav-dashboard">
+      <span class="nav-icon">🏠</span>
+      <span>Dashboard</span>
+    </a>
+    <a href="/transactions" class="nav-item {% if active_page == 'transactions' %}active{% endif %}" id="nav-transactions">
+      <span class="nav-icon">📋</span>
+      <span>Transactions</span>
+    </a>
+    <a href="/upi" class="nav-item {% if active_page == 'upi' %}active{% endif %}" id="nav-upi">
+      <span class="nav-icon">⚡</span>
+      <span>UPI Payments</span>
+      <span class="badge badge-teal" style="margin-left:auto;font-size:0.55rem;">Live</span>
+    </a>
+    <a href="/linked-accounts" class="nav-item {% if active_page == 'linked-accounts' %}active{% endif %}" id="nav-linked">
+      <span class="nav-icon">🔗</span>
+      <span>Linked Accounts</span>
+    </a>
+    <a href="/payment-gateway" class="nav-item {% if active_page == 'gateway' %}active{% endif %}" id="nav-gateway">
+      <span class="nav-icon">💳</span>
+      <span>Pay Gateway</span>
+    </a>
+
+    <div class="nav-section-label" style="margin-top:0.75rem;">Settings</div>
+    <a href="/security" class="nav-item {% if active_page == 'security' %}active{% endif %}" id="nav-security">
+      <span class="nav-icon">🔐</span>
+      <span>Security</span>
+    </a>
+    <a href="#" class="nav-item" onclick="signOut();return false;">
+      <span class="nav-icon">⏻</span>
+      <span>Sign Out</span>
+    </a>
+  </nav>
+
+  <!-- Footer UPI Badge -->
+  <div class="sidebar-footer">
+    <div class="upi-badge">
+      <div class="upi-label">Your UPI ID</div>
+      <div class="upi-id" data-sidebar-upi id="sidebar-upi-display">Loading...</div>
+    </div>
+    <div style="font-size:0.65rem;color:var(--text-muted);text-align:center;line-height:1.4;">
+      Payfin<br>
+      RBI Reg. No.: NBFC-2025-VE-001
+    </div>
+  </div>
+</aside>

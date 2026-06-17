@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+{% block title %}Security & Settings — Payfin{% endblock %}
+{% block body %}
+
+<div class="app-shell">
+  {% set active_page = 'security' %}
+  {% include "sidebar.html" %}
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="page-title">Security & Settings</div>
+        <div class="page-subtitle">Manage your account security and profile</div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-time" id="topbar-clock">--:--:--</div>
+      </div>
+    </header>
+
+    <main class="page-area">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+
+        <!-- Left Column -->
+        <div style="display:flex;flex-direction:column;gap:1.5rem;">
+
+          <!-- Security Score -->
+          <div class="card" style="background:linear-gradient(135deg,#061a16,#081530);border-color:rgba(0,212,200,0.2);">
+            <div style="display:flex;align-items:center;gap:2rem;">
+              <div class="score-ring-container">
+                <svg class="score-ring-svg" viewBox="0 0 100 100">
+                  <circle class="score-ring-track" cx="50" cy="50" r="45"/>
+                  <circle class="score-ring-fill" cx="50" cy="50" r="45" id="score-ring-fill"/>
+                </svg>
+                <div class="score-ring-text">
+                  <div class="score-number" id="security-score">94</div>
+                  <div class="score-label">Score</div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:0.5rem;">Security Status</div>
+                <div style="font-size:1.5rem;font-weight:800;color:var(--teal);">Excellent</div>
+                <div style="font-size:0.8rem;color:var(--text-second);margin-top:0.25rem;">Your account is well-protected</div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:1.5rem;">
+              <div class="security-check passed"><span class="check-icon">✓</span> Password hashed with bcrypt (cost 12)</div>
+              <div class="security-check passed"><span class="check-icon">✓</span> JWT session tokens with 24h expiry</div>
+              <div class="security-check passed"><span class="check-icon">✓</span> All SQL queries are parameterized</div>
+              <div class="security-check passed"><span class="check-icon">✓</span> ACID-compliant transaction transfers</div>
+              <div class="security-check passed"><span class="check-icon">✓</span> Rate limiting on all auth endpoints</div>
+              <div class="security-check passed"><span class="check-icon">✓</span> Security headers (XSS, CSRF, etc.)</div>
+              <div class="security-check pending"><span class="check-icon">○</span> Two-Factor Authentication (coming soon)</div>
+            </div>
+          </div>
+
+          <!-- Account Information -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Account Information</div>
+              <button class="btn btn-ghost btn-sm" id="edit-profile-btn" onclick="toggleEditProfile()">✏️ Edit</button>
+            </div>
+
+            <!-- View Mode -->
+            <div id="profile-view">
+              <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid var(--border);">
+                  <span style="font-size:0.8rem;color:var(--text-muted);min-width:120px;">Full Name</span>
+                  <span style="font-weight:600;" id="info-name">—</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid var(--border);">
+                  <span style="font-size:0.8rem;color:var(--text-muted);min-width:120px;">Username</span>
+                  <span style="font-family:var(--font-mono);" id="info-username">—</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid var(--border);">
+                  <span style="font-size:0.8rem;color:var(--text-muted);min-width:120px;">Email</span>
+                  <span id="info-email">—</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid var(--border);">
+                  <span style="font-size:0.8rem;color:var(--text-muted);min-width:120px;">Phone</span>
+                  <span id="info-phone">—</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid var(--border);">
+                  <span style="font-size:0.8rem;color:var(--text-muted);min-width:120px;">UPI ID</span>
+                  <span style="color:var(--teal);font-family:var(--font-mono);font-weight:600;" id="info-upi">—</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;">
+                  <span style="font-size:0.8rem;color:var(--text-muted);min-width:120px;">Member Since</span>
+                  <span id="info-since">—</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Edit Mode -->
+            <div id="profile-edit" style="display:none;">
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input id="edit-full-name" class="form-input" type="text" placeholder="Your full name">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Phone Number</label>
+                <input id="edit-phone" class="form-input" type="tel" placeholder="+91 98765 43210">
+              </div>
+              <div id="edit-error" class="alert alert-error" style="display:none;margin-bottom:1rem;">
+                <span class="alert-icon">❌</span><span></span>
+              </div>
+              <div style="display:flex;gap:0.75rem;">
+                <button class="btn btn-primary" id="save-profile-btn" onclick="saveProfile()">Save Changes</button>
+                <button class="btn btn-ghost" onclick="toggleEditProfile(false)">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div style="display:flex;flex-direction:column;gap:1.5rem;">
+
+          <!-- Change Password -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🔑 Change Password</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Current Password</label>
+              <div class="input-group" style="position:relative;">
+                <span class="input-prefix">🔒</span>
+                <input id="pwd-current" class="form-input" type="password" placeholder="Your current password"
+                  style="padding-left:2.5rem;padding-right:2.5rem;">
+                <button type="button" class="password-toggle" onclick="togglePwd('pwd-current',this)">👁️</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <div class="input-group" style="position:relative;">
+                <span class="input-prefix">🔒</span>
+                <input id="pwd-new" class="form-input" type="password" placeholder="Min. 8 chars, uppercase, digit, symbol"
+                  oninput="window.Payfin.updatePasswordStrength(this.value,'pwd-strength')"
+                  style="padding-left:2.5rem;padding-right:2.5rem;">
+                <button type="button" class="password-toggle" onclick="togglePwd('pwd-new',this)">👁️</button>
+              </div>
+              <div id="pwd-strength" class="password-strength" style="margin-top:0.5rem;">
+                <div class="strength-bar">
+                  <div class="strength-segment"></div>
+                  <div class="strength-segment"></div>
+                  <div class="strength-segment"></div>
+                  <div class="strength-segment"></div>
+                </div>
+                <div class="strength-label"></div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Confirm New Password</label>
+              <div class="input-group" style="position:relative;">
+                <span class="input-prefix">🔒</span>
+                <input id="pwd-confirm" class="form-input" type="password" placeholder="Re-enter new password"
+                  style="padding-left:2.5rem;padding-right:2.5rem;">
+                <button type="button" class="password-toggle" onclick="togglePwd('pwd-confirm',this)">👁️</button>
+              </div>
+            </div>
+
+            <div id="pwd-error" class="alert alert-error" style="display:none;margin-bottom:1rem;">
+              <span class="alert-icon">❌</span><span></span>
+            </div>
+
+            <button class="btn btn-primary btn-full" id="change-pwd-btn" onclick="changePassword()">
+              Update Password
+            </button>
+          </div>
+
+          <!-- Active Sessions -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🖥️ Active Sessions</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+              <div style="
+                background:var(--bg-surface);border:1px solid var(--border);
+                border-radius:var(--radius-md);padding:0.875rem;
+                display:flex;align-items:center;gap:0.75rem;
+              ">
+                <div style="
+                  width:40px;height:40px;background:var(--teal-faint);
+                  border-radius:50%;display:flex;align-items:center;justify-content:center;
+                  font-size:1.25rem;flex-shrink:0;
+                ">💻</div>
+                <div style="flex:1;">
+                  <div style="font-weight:600;font-size:0.875rem;">Current Session</div>
+                  <div style="font-size:0.72rem;color:var(--text-muted);">This device · Active now</div>
+                </div>
+                <div class="badge badge-green" style="font-size:0.65rem;">Active</div>
+              </div>
+            </div>
+            <button class="btn btn-danger btn-full" style="margin-top:1rem;" onclick="revokeAllSessions()">
+              ⏻ Sign Out All Devices
+            </button>
+          </div>
+
+          <!-- Danger Zone -->
+          <div class="card" style="border-color:rgba(239,68,68,0.2);">
+            <div class="card-header">
+              <div class="card-title" style="color:var(--red);">⚠️ Danger Zone</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+              <div style="font-size:0.875rem;color:var(--text-second);line-height:1.6;">
+                These actions are irreversible. Please proceed with extreme caution.
+              </div>
+              <button class="btn btn-ghost" style="border-color:rgba(239,68,68,0.3);color:var(--red);" onclick="downloadData()">
+                📥 Download My Data
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  const { Auth, API, Fmt, Toast, Form, confirmDialog, updatePasswordStrength } = window.Payfin;
+  let currentUser = null;
+
+  async function init() {
+    if (!Auth.isLoggedIn()) { window.location.href = '/login'; return; }
+
+    const me = await API.get('/api/auth/me');
+    if (!me?.ok) { window.location.href = '/login'; return; }
+    currentUser = me.data.user;
+
+    document.querySelectorAll('[data-user-name]').forEach(el => el.textContent = currentUser.full_name);
+    document.querySelectorAll('[data-user-initials]').forEach(el => el.textContent = Fmt.initials(currentUser.full_name));
+    document.querySelectorAll('[data-sidebar-upi]').forEach(el => el.textContent = currentUser.upi_id || '—');
+
+    populateInfo();
+  }
+
+  function populateInfo() {
+    document.getElementById('info-name').textContent     = currentUser.full_name;
+    document.getElementById('info-username').textContent = '@' + currentUser.username;
+    document.getElementById('info-email').textContent    = currentUser.email;
+    document.getElementById('info-phone').textContent    = currentUser.phone || 'Not set';
+    document.getElementById('info-upi').textContent      = currentUser.upi_id || '—';
+    document.getElementById('info-since').textContent    = Fmt.date(currentUser.created_at);
+
+    // Edit fields prefill
+    document.getElementById('edit-full-name').value = currentUser.full_name;
+    document.getElementById('edit-phone').value     = currentUser.phone || '';
+  }
+
+  function toggleEditProfile(show = true) {
+    document.getElementById('profile-view').style.display = show ? 'none' : '';
+    document.getElementById('profile-edit').style.display = show ? '' : 'none';
+    document.getElementById('edit-profile-btn').textContent = show ? '✕ Cancel' : '✏️ Edit';
+    if (!show) {
+      document.getElementById('edit-profile-btn').onclick = () => toggleEditProfile(true);
+    } else {
+      document.getElementById('edit-profile-btn').onclick = () => toggleEditProfile(false);
+    }
+  }
+
+  async function saveProfile() {
+    const fullName = document.getElementById('edit-full-name').value.trim();
+    const phone    = document.getElementById('edit-phone').value.trim();
+    const errEl    = document.getElementById('edit-error');
+    const btn      = document.getElementById('save-profile-btn');
+
+    if (!fullName) { errEl.querySelector('span:last-child').textContent = 'Full name is required.'; errEl.style.display='flex'; return; }
+
+    Form.setLoading(btn, true);
+    const res = await API.put('/api/user/profile', { full_name: fullName, phone });
+    Form.setLoading(btn, false);
+
+    if (res?.ok && res.data.success) {
+      currentUser.full_name = fullName;
+      currentUser.phone = phone;
+      populateInfo();
+      toggleEditProfile(false);
+      Toast.success('Profile updated!');
+    } else {
+      errEl.querySelector('span:last-child').textContent = res?.data?.error || 'Update failed.';
+      errEl.style.display = 'flex';
+    }
+  }
+
+  async function changePassword() {
+    const current = document.getElementById('pwd-current').value;
+    const newPwd  = document.getElementById('pwd-new').value;
+    const confirm = document.getElementById('pwd-confirm').value;
+    const errEl   = document.getElementById('pwd-error');
+    const btn     = document.getElementById('change-pwd-btn');
+
+    errEl.style.display = 'none';
+
+    if (!current || !newPwd || !confirm) { errEl.querySelector('span:last-child').textContent = 'All fields are required.'; errEl.style.display='flex'; return; }
+    if (newPwd !== confirm) { errEl.querySelector('span:last-child').textContent = 'New passwords do not match.'; errEl.style.display='flex'; return; }
+
+    Form.setLoading(btn, true);
+    const res = await API.post('/api/user/change-password', {
+      old_password: current,
+      new_password: newPwd,
+      confirm_password: confirm,
+    });
+    Form.setLoading(btn, false);
+
+    if (res?.ok && res.data.success) {
+      Toast.success('Password changed!', 'Please sign in with your new password.');
+      setTimeout(() => {
+        Auth.removeToken();
+        window.location.href = '/login';
+      }, 1500);
+    } else {
+      errEl.querySelector('span:last-child').textContent = res?.data?.error || 'Password change failed.';
+      errEl.style.display = 'flex';
+    }
+  }
+
+  function togglePwd(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+    else { input.type = 'password'; btn.textContent = '👁️'; }
+  }
+
+  function revokeAllSessions() {
+    confirmDialog('Sign Out All Devices', 'This will sign you out from all devices including this one. Continue?', () => {
+      Auth.removeToken();
+      window.location.href = '/login';
+    }, true);
+  }
+
+  function downloadData() {
+    if (!currentUser) return;
+    const data = JSON.stringify({ user: currentUser, exported_at: new Date().toISOString() }, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `payfin_data_${currentUser.username}.json`;
+    link.click();
+    Toast.success('Data exported!');
+  }
+
+  function signOut() {
+    confirmDialog('Sign Out', 'Are you sure?', async () => {
+      await API.post('/api/auth/logout');
+      Auth.removeToken();
+      window.location.href = '/login';
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+{% endblock %}

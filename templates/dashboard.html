@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Payfin{% endblock %}
+{% block body %}
+
+<div class="app-shell">
+  {% set active_page = 'dashboard' %}
+  {% include "sidebar.html" %}
+
+  <div class="main-content">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="page-title">Dashboard</div>
+        <div class="page-subtitle" id="today-date">Loading...</div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-time" id="topbar-clock">--:--:--</div>
+        <div style="
+          display:flex;align-items:center;gap:8px;
+          background:var(--green-faint);border:1px solid rgba(34,197,94,0.2);
+          border-radius:var(--radius-full);padding:4px 12px;
+          font-size:0.72rem;font-weight:600;color:var(--green);
+        ">
+          <div style="width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse-glow 2s infinite;"></div>
+          Secured
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="page-area">
+
+      <!-- Greeting -->
+      <div style="margin-bottom:1.5rem;">
+        <h1 style="font-size:1.5rem;margin-bottom:0.25rem;">
+          Good <span id="greeting-time">day</span>,
+          <span data-user-name style="color:var(--teal);">User</span>! 👋
+        </h1>
+        <p style="color:var(--text-muted);font-size:0.875rem;">Here's your financial overview</p>
+      </div>
+
+      <!-- Balance Hero + Quick Actions Row -->
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;margin-bottom:1.5rem;" id="hero-row">
+        <!-- Hero Balance Card -->
+        <div class="balance-card">
+          <div class="balance-type-badge" id="hero-acc-type">Loading...</div>
+          <div class="balance-label">Available Balance</div>
+          <div class="balance-amount">
+            <span class="currency">₹</span><span id="hero-balance">0.00</span>
+          </div>
+          <div class="balance-account-no" id="hero-acc-no" style="margin-top:0.5rem;">Loading...</div>
+
+          <div style="display:flex;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="openDepositModal()">+ Deposit</button>
+            <button class="btn btn-danger btn-sm" onclick="openWithdrawModal()">− Withdraw</button>
+            <button class="btn btn-ghost btn-sm" onclick="openTransferModal()">⇄ Transfer</button>
+            <a href="/upi" class="btn btn-outline-teal btn-sm">⚡ UPI Pay</a>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card" style="display:flex;flex-direction:column;">
+          <div class="card-title" style="margin-bottom:1rem;">Quick Actions</div>
+          <div style="display:flex;flex-direction:column;gap:0.5rem;flex:1;">
+            <a href="/transactions" class="quick-action-btn" style="flex-direction:row;justify-content:flex-start;padding:0.75rem;">
+              <div class="qa-icon" style="background:var(--blue-faint);color:var(--blue);">📋</div>
+              <span>View Transactions</span>
+            </a>
+            <a href="/upi" class="quick-action-btn" style="flex-direction:row;justify-content:flex-start;padding:0.75rem;">
+              <div class="qa-icon" style="background:var(--teal-faint);color:var(--teal);">⚡</div>
+              <span>UPI Payments</span>
+            </a>
+            <a href="/linked-accounts" class="quick-action-btn" style="flex-direction:row;justify-content:flex-start;padding:0.75rem;">
+              <div class="qa-icon" style="background:var(--purple)15;color:var(--purple);">🔗</div>
+              <span>Linked Banks</span>
+            </a>
+            <a href="/payment-gateway" class="quick-action-btn" style="flex-direction:row;justify-content:flex-start;padding:0.75rem;">
+              <div class="qa-icon" style="background:var(--gold-faint);color:var(--gold);">💳</div>
+              <span>Make Payment</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stats-grid" style="margin-bottom:1.5rem;">
+        <div class="stat-card animate-on-scroll">
+          <div class="stat-icon">💰</div>
+          <div class="stat-label">Total Balance</div>
+          <div class="stat-value text-teal" id="stat-total-balance">₹0.00</div>
+          <div class="stat-sub">Across all accounts</div>
+        </div>
+        <div class="stat-card animate-on-scroll">
+          <div class="stat-icon">📈</div>
+          <div class="stat-label">Credits (30 days)</div>
+          <div class="stat-value text-green" id="stat-monthly-credits">₹0.00</div>
+          <div class="stat-sub">Total money in</div>
+        </div>
+        <div class="stat-card animate-on-scroll">
+          <div class="stat-icon">📉</div>
+          <div class="stat-label">Debits (30 days)</div>
+          <div class="stat-value text-red" id="stat-monthly-debits">₹0.00</div>
+          <div class="stat-sub">Total money out</div>
+        </div>
+        <div class="stat-card animate-on-scroll">
+          <div class="stat-icon">🔄</div>
+          <div class="stat-label">Transactions</div>
+          <div class="stat-value text-teal" id="stat-txn-count">0</div>
+          <div class="stat-sub">Last 30 days</div>
+        </div>
+      </div>
+
+      <!-- Accounts + Recent Transactions -->
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:1.5rem;">
+        <!-- Accounts -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">My Accounts</div>
+            <span class="badge badge-teal" id="stat-account-count" style="background:var(--teal-faint);color:var(--teal);">0</span>
+          </div>
+          <div id="accounts-container">
+            <div class="skeleton" style="height:80px;margin-bottom:8px;"></div>
+            <div class="skeleton" style="height:80px;margin-bottom:8px;"></div>
+          </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Transactions</div>
+            <a href="/transactions" class="btn btn-ghost btn-sm">View all →</a>
+          </div>
+          <div id="recent-transactions">
+            <div class="skeleton" style="height:56px;margin-bottom:6px;"></div>
+            <div class="skeleton" style="height:56px;margin-bottom:6px;"></div>
+            <div class="skeleton" style="height:56px;margin-bottom:6px;"></div>
+            <div class="skeleton" style="height:56px;"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  // Greeting time
+  const hour = new Date().getHours();
+  document.getElementById('greeting-time').textContent =
+    hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+
+  // Today's date
+  document.getElementById('today-date').textContent =
+    new Date().toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  function signOut() {
+    window.Payfin.confirmDialog('Sign Out', 'Are you sure you want to sign out of Payfin?', async () => {
+      await window.Payfin.API.post('/api/auth/logout');
+      window.Payfin.Auth.removeToken();
+      window.location.href = '/login';
+    });
+  }
+</script>
+{% endblock %}
+{% block extra_js %}
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}

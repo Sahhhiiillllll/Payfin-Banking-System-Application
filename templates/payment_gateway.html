@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+{% block title %}Payment Gateway — Payfin{% endblock %}
+{% block body %}
+
+<div class="app-shell">
+  {% set active_page = 'gateway' %}
+  {% include "sidebar.html" %}
+
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="page-title">Payment Gateway</div>
+        <div class="page-subtitle">Simulate card, UPI & net banking payments</div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-time" id="topbar-clock">--:--:--</div>
+        <div class="badge badge-green" style="font-size:0.7rem;">🟢 Gateway Online</div>
+      </div>
+    </header>
+
+    <main class="page-area">
+
+      <div style="display:grid;grid-template-columns:3fr 2fr;gap:1.5rem;">
+
+        <!-- Payment Form -->
+        <div>
+          <div class="card" style="margin-bottom:1.5rem;">
+            <div class="card-header">
+              <div class="card-title">💳 Make a Payment</div>
+              <div style="
+                background:var(--green-faint);border:1px solid rgba(34,197,94,0.2);
+                border-radius:var(--radius-full);padding:3px 10px;
+                font-size:0.7rem;font-weight:700;color:var(--green);
+              ">🔒 256-bit SSL</div>
+            </div>
+
+            <!-- Debit from account -->
+            <div class="form-group">
+              <label class="form-label">Debit From Account *</label>
+              <select id="gw-account" class="form-select">
+                <option value="">Loading accounts...</option>
+              </select>
+              <div class="form-hint" id="gw-balance-hint">—</div>
+            </div>
+
+            <!-- Merchant -->
+            <div class="form-group">
+              <label class="form-label">Merchant / Payee *</label>
+              <input id="gw-merchant" class="form-input" type="text" placeholder="e.g. Amazon India, Netflix, Reliance Jio">
+              <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
+                <button class="btn btn-ghost btn-sm" onclick="setMerchant('Amazon India')">Amazon</button>
+                <button class="btn btn-ghost btn-sm" onclick="setMerchant('Netflix India')">Netflix</button>
+                <button class="btn btn-ghost btn-sm" onclick="setMerchant('Reliance Jio')">Jio</button>
+                <button class="btn btn-ghost btn-sm" onclick="setMerchant('Swiggy')">Swiggy</button>
+                <button class="btn btn-ghost btn-sm" onclick="setMerchant('Uber India')">Uber</button>
+              </div>
+            </div>
+
+            <!-- Amount -->
+            <div class="form-group">
+              <label class="form-label">Amount (₹) *</label>
+              <div class="input-group">
+                <span class="input-prefix">₹</span>
+                <input id="gw-amount" class="form-input" type="number" min="1" step="0.01"
+                  placeholder="0.00" style="padding-left:2.5rem;font-size:1.25rem;font-weight:700;"
+                  oninput="updateOrderSummary()">
+              </div>
+              <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
+                <button class="btn btn-ghost btn-sm" onclick="setGwAmount(99)">₹99</button>
+                <button class="btn btn-ghost btn-sm" onclick="setGwAmount(299)">₹299</button>
+                <button class="btn btn-ghost btn-sm" onclick="setGwAmount(999)">₹999</button>
+                <button class="btn btn-ghost btn-sm" onclick="setGwAmount(4999)">₹4,999</button>
+              </div>
+            </div>
+
+            <!-- Payment Method -->
+            <div class="form-group">
+              <label class="form-label">Payment Method *</label>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-top:0.5rem;">
+                <div class="payment-method-card selected" data-method="UPI" onclick="selectMethod(this,'UPI')">
+                  <div class="pm-icon">⚡</div>
+                  <div class="pm-label">UPI</div>
+                </div>
+                <div class="payment-method-card" data-method="CARD" onclick="selectMethod(this,'CARD')">
+                  <div class="pm-icon">💳</div>
+                  <div class="pm-label">Card</div>
+                </div>
+                <div class="payment-method-card" data-method="NETBANKING" onclick="selectMethod(this,'NETBANKING')">
+                  <div class="pm-icon">🏦</div>
+                  <div class="pm-label">Net Banking</div>
+                </div>
+                <div class="payment-method-card" data-method="WALLET" onclick="selectMethod(this,'WALLET')">
+                  <div class="pm-icon">👜</div>
+                  <div class="pm-label">Wallet</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Method-specific fields -->
+            <div id="method-upi-fields" class="form-group">
+              <label class="form-label">UPI ID</label>
+              <input id="gw-upi-vpa" class="form-input" type="text" placeholder="yourname@payfin">
+            </div>
+
+            <div id="method-card-fields" style="display:none;">
+              <div class="form-group">
+                <label class="form-label">Card Number</label>
+                <input id="gw-card-no" class="form-input" type="text"
+                  placeholder="1234  5678  9012  3456" maxlength="19"
+                  oninput="formatCard(this)">
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Expiry (MM/YY)</label>
+                  <input class="form-input" type="text" placeholder="12/27" maxlength="5">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">CVV</label>
+                  <input class="form-input" type="password" placeholder="•••" maxlength="4">
+                </div>
+              </div>
+            </div>
+
+            <div id="method-netbanking-fields" style="display:none;">
+              <div class="form-group">
+                <label class="form-label">Select Bank</label>
+                <select class="form-select">
+                  <option value="">Choose your bank</option>
+                  <option>State Bank of India</option>
+                  <option>HDFC Bank</option>
+                  <option>ICICI Bank</option>
+                  <option>Axis Bank</option>
+                  <option>Kotak Mahindra Bank</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="gw-error" class="alert alert-error" style="display:none;margin-bottom:1rem;">
+              <span class="alert-icon">❌</span><span></span>
+            </div>
+
+            <button class="btn btn-primary btn-full btn-xl" id="gw-pay-btn" onclick="processPayment()">
+              🔒 Pay Securely
+            </button>
+
+            <div style="display:flex;align-items:center;justify-content:center;gap:0.5rem;margin-top:0.75rem;font-size:0.72rem;color:var(--text-muted);">
+              <span>🔐</span> Protected by Payfin Payment Security · PCI-DSS Compliant
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Summary + History -->
+        <div style="display:flex;flex-direction:column;gap:1.5rem;">
+
+          <!-- Order Summary -->
+          <div class="card" style="background:linear-gradient(135deg,#080e1e,#0c1428);border-color:rgba(0,212,200,0.15);">
+            <div class="card-title" style="margin-bottom:1.25rem;">Order Summary</div>
+            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+              <div style="display:flex;justify-content:space-between;font-size:0.875rem;">
+                <span style="color:var(--text-second);">Merchant</span>
+                <span id="summary-merchant" style="font-weight:600;">—</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:0.875rem;">
+                <span style="color:var(--text-second);">Subtotal</span>
+                <span id="summary-subtotal">₹0.00</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:0.875rem;">
+                <span style="color:var(--text-second);">Gateway Fee</span>
+                <span style="color:var(--green);">FREE</span>
+              </div>
+              <div style="height:1px;background:var(--border);"></div>
+              <div style="display:flex;justify-content:space-between;font-size:1.1rem;font-weight:800;">
+                <span>Total</span>
+                <span id="summary-total" style="color:var(--teal);">₹0.00</span>
+              </div>
+            </div>
+            <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+              <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:0.5rem;">
+                <span style="color:var(--text-muted);">Payment Method</span>
+                <span id="summary-method" style="color:var(--text-second);">UPI</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:0.8rem;">
+                <span style="color:var(--text-muted);">Settlement</span>
+                <span style="color:var(--green);">Instant</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Payments -->
+          <div class="card" style="flex:1;">
+            <div class="card-header">
+              <div class="card-title">Recent Payments</div>
+              <span id="gw-history-count" class="badge badge-teal">0</span>
+            </div>
+            <div id="gw-history-list">
+              <div class="skeleton" style="height:50px;margin-bottom:6px;"></div>
+              <div class="skeleton" style="height:50px;margin-bottom:6px;"></div>
+              <div class="skeleton" style="height:50px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  const { Auth, API, Fmt, Toast, Form, confirmDialog } = window.Payfin;
+
+  let accounts = [];
+  let selectedMethod = 'UPI';
+
+  async function init() {
+    if (!Auth.isLoggedIn()) { window.location.href = '/login'; return; }
+
+    const me = await API.get('/api/auth/me');
+    if (!me?.ok) { window.location.href = '/login'; return; }
+    const user = me.data.user;
+    document.querySelectorAll('[data-user-name]').forEach(el => el.textContent = user.full_name);
+    document.querySelectorAll('[data-user-initials]').forEach(el => el.textContent = Fmt.initials(user.full_name));
+    document.querySelectorAll('[data-sidebar-upi]').forEach(el => el.textContent = user.upi_id || '—');
+
+    // Pre-fill UPI VPA
+    if (user.upi_id) document.getElementById('gw-upi-vpa').value = user.upi_id;
+
+    await loadAccounts();
+    await loadHistory();
+
+    // Account change listener
+    document.getElementById('gw-account').addEventListener('change', function() {
+      const acc = accounts.find(a => a.id == this.value);
+      document.getElementById('gw-balance-hint').textContent = acc
+        ? `Available: ${Fmt.currency(acc.balance)}`
+        : '';
+    });
+
+    // Merchant input listener
+    document.getElementById('gw-merchant').addEventListener('input', updateOrderSummary);
+  }
+
+  async function loadAccounts() {
+    const res = await API.get('/api/accounts');
+    if (!res?.ok) return;
+    accounts = res.data.accounts || [];
+    const sel = document.getElementById('gw-account');
+    sel.innerHTML = accounts.map(a =>
+      `<option value="${a.id}">${a.account_type} — ${Fmt.currency(a.balance)}</option>`
+    ).join('');
+    const primary = accounts.find(a => a.is_primary) || accounts[0];
+    if (primary) {
+      sel.value = primary.id;
+      document.getElementById('gw-balance-hint').textContent = `Available: ${Fmt.currency(primary.balance)}`;
+    }
+  }
+
+  async function loadHistory() {
+    const res = await API.get('/api/gateway/history?limit=20');
+    if (!res?.ok) return;
+    const txns = res.data.transactions || [];
+    document.getElementById('gw-history-count').textContent = txns.length;
+    const list = document.getElementById('gw-history-list');
+    if (!txns.length) {
+      list.innerHTML = `<div class="empty-state" style="padding:2rem;"><div class="empty-state-icon">💳</div><div class="empty-state-title">No payments yet</div></div>`;
+      return;
+    }
+    list.innerHTML = txns.map(t => {
+      const statusColor = t.status === 'SUCCESS' ? 'var(--green)' : t.status === 'FAILED' ? 'var(--red)' : 'var(--gold)';
+      const methodIcon  = { UPI:'⚡', CARD:'💳', NETBANKING:'🏦', WALLET:'👜' }[t.payment_method] || '💰';
+      return `
+        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.65rem 0;border-bottom:1px solid var(--border);">
+          <div style="font-size:1.25rem;">${methodIcon}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.82rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.merchant || '—'}</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);">${Fmt.date(t.created_at)} · ${t.payment_method}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-weight:700;color:var(--red);font-size:0.875rem;">−${Fmt.currency(t.amount)}</div>
+            <div style="font-size:0.65rem;font-weight:700;color:${statusColor};">${t.status}</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function selectMethod(el, method) {
+    document.querySelectorAll('.payment-method-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedMethod = method;
+    document.getElementById('summary-method').textContent = method;
+
+    // Toggle fields
+    document.getElementById('method-upi-fields').style.display     = method === 'UPI' ? '' : 'none';
+    document.getElementById('method-card-fields').style.display    = method === 'CARD' ? '' : 'none';
+    document.getElementById('method-netbanking-fields').style.display = method === 'NETBANKING' ? '' : 'none';
+  }
+
+  function setMerchant(name) {
+    document.getElementById('gw-merchant').value = name;
+    document.getElementById('summary-merchant').textContent = name;
+  }
+
+  function setGwAmount(val) {
+    document.getElementById('gw-amount').value = val;
+    updateOrderSummary();
+  }
+
+  function updateOrderSummary() {
+    const amount = parseFloat(document.getElementById('gw-amount').value) || 0;
+    const merchant = document.getElementById('gw-merchant').value || '—';
+    document.getElementById('summary-merchant').textContent = merchant;
+    document.getElementById('summary-subtotal').textContent = Fmt.currency(amount);
+    document.getElementById('summary-total').textContent    = Fmt.currency(amount);
+  }
+
+  function formatCard(input) {
+    let val = input.value.replace(/\D/g, '').substring(0, 16);
+    input.value = val.replace(/(.{4})/g, '$1  ').trim();
+  }
+
+  async function processPayment() {
+    const accountId   = document.getElementById('gw-account').value;
+    const merchant    = document.getElementById('gw-merchant').value.trim();
+    const amount      = document.getElementById('gw-amount').value;
+    const upiVpa      = document.getElementById('gw-upi-vpa')?.value.trim() || null;
+    const cardNo      = document.getElementById('gw-card-no')?.value.replace(/\s/g,'') || null;
+    const errEl       = document.getElementById('gw-error');
+    const btn         = document.getElementById('gw-pay-btn');
+
+    errEl.style.display = 'none';
+
+    if (!accountId) { errEl.querySelector('span:last-child').textContent = 'Select an account.'; errEl.style.display='flex'; return; }
+    if (!merchant)  { errEl.querySelector('span:last-child').textContent = 'Enter merchant name.'; errEl.style.display='flex'; return; }
+    if (!amount || parseFloat(amount) <= 0) { errEl.querySelector('span:last-child').textContent = 'Enter a valid amount.'; errEl.style.display='flex'; return; }
+
+    const acc = accounts.find(a => a.id == accountId);
+    const amtF = Fmt.currency(parseFloat(amount));
+
+    confirmDialog(
+      '🔒 Confirm Payment',
+      `Pay <strong>${amtF}</strong> to <strong>${merchant}</strong> via <strong>${selectedMethod}</strong>?`,
+      async () => {
+        Form.setLoading(btn, true);
+        const payload = {
+          account_id: parseInt(accountId),
+          payment_method: selectedMethod,
+          amount: parseFloat(amount),
+          merchant,
+          description: `${selectedMethod} payment to ${merchant}`,
+          card_last4: cardNo ? cardNo.slice(-4) : null,
+          upi_vpa: upiVpa,
+        };
+
+        const res = await API.post('/api/gateway/pay', payload);
+        Form.setLoading(btn, false);
+
+        if (res?.ok && res.data.success) {
+          Toast.success('Payment Successful! 🎉', `${amtF} paid to ${merchant}. Ref: ${res.data.reference_id}`);
+          document.getElementById('gw-amount').value = '';
+          document.getElementById('gw-merchant').value = '';
+          updateOrderSummary();
+          await loadAccounts();
+          await loadHistory();
+        } else {
+          const msg = res?.data?.error || 'Payment failed.';
+          errEl.querySelector('span:last-child').textContent = msg;
+          errEl.style.display = 'flex';
+        }
+      }
+    );
+  }
+
+  function signOut() {
+    confirmDialog('Sign Out', 'Are you sure?', async () => {
+      await API.post('/api/auth/logout');
+      Auth.removeToken();
+      window.location.href = '/login';
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+{% endblock %}

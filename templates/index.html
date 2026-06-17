@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Payfin — Bank Smarter. Move Faster.{% endblock %}
+{% block body %}
+
+<!-- Navigation -->
+<nav class="landing-nav">
+  <div class="logo-mark">
+    <div class="logo-icon">V</div>
+    <div class="logo-text">
+      <span class="logo-name">Payfin</span>
+      <span class="logo-tagline">Financial Technologies</span>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <a href="/login"    class="btn btn-ghost btn-sm">Sign In</a>
+    <a href="/register" class="btn btn-primary btn-sm">Open Account</a>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero-section">
+  <div class="hero-bg-glow"></div>
+
+  <!-- Floating background orbs -->
+  <div style="position:absolute;top:15%;right:10%;width:300px;height:300px;background:radial-gradient(circle,rgba(0,212,200,0.04) 0%,transparent 70%);border-radius:50%;animation:float 6s ease-in-out infinite;"></div>
+  <div style="position:absolute;bottom:20%;left:8%;width:200px;height:200px;background:radial-gradient(circle,rgba(245,197,66,0.05) 0%,transparent 70%);border-radius:50%;animation:float 8s ease-in-out infinite reverse;"></div>
+
+  <div class="hero-badge">
+    <span>🏦</span>
+    <span>India's Most Secure Digital Bank</span>
+  </div>
+
+  <h1 class="hero-title">
+    <span class="text-gradient">Bank Smarter.</span><br>
+    Move Faster.
+  </h1>
+
+  <p class="hero-subtitle">
+    Payfin brings you enterprise-grade banking with instant UPI payments,
+    real-time transfers, linked bank accounts, and military-grade security —
+    all in one seamless platform.
+  </p>
+
+  <div class="hero-cta">
+    <a href="/register" class="btn btn-primary btn-xl">
+      Open Free Account →
+    </a>
+    <a href="/login" class="btn btn-ghost btn-xl">
+      Sign In
+    </a>
+  </div>
+
+  <!-- Floating stats -->
+  <div style="display:flex;gap:2rem;margin-top:4rem;flex-wrap:wrap;justify-content:center;">
+    <div style="text-align:center;animation:slideUp 0.6s ease 0.2s both;">
+      <div style="font-size:1.75rem;font-weight:900;color:var(--teal);">₹2.4Cr+</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);">Transactions Processed</div>
+    </div>
+    <div style="width:1px;background:var(--border);"></div>
+    <div style="text-align:center;animation:slideUp 0.6s ease 0.35s both;">
+      <div style="font-size:1.75rem;font-weight:900;color:var(--gold);">99.99%</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);">Uptime SLA</div>
+    </div>
+    <div style="width:1px;background:var(--border);"></div>
+    <div style="text-align:center;animation:slideUp 0.6s ease 0.5s both;">
+      <div style="font-size:1.75rem;font-weight:900;color:var(--green);">256-bit</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);">Encryption Standard</div>
+    </div>
+    <div style="width:1px;background:var(--border);"></div>
+    <div style="text-align:center;animation:slideUp 0.6s ease 0.65s both;">
+      <div style="font-size:1.75rem;font-weight:900;color:var(--purple);">Instant</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);">UPI Transfers</div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Grid -->
+<section style="background:var(--bg-dark);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <div style="text-align:center;padding:4rem 2rem 2rem;">
+    <div class="badge badge-teal" style="margin-bottom:1rem;">Everything You Need</div>
+    <h2 style="margin-bottom:1rem;">Full-Stack Banking Platform</h2>
+    <p style="color:var(--text-second);max-width:500px;margin:0 auto;">
+      From everyday transactions to investment tracking — Payfin has every financial tool you need.
+    </p>
+  </div>
+  <div class="features-grid animate-on-scroll">
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Instant UPI Payments</div>
+      <div class="feature-desc">Your unique <strong style="color:var(--teal);">@payfin</strong> UPI handle. Send and receive money instantly — 24×7, 365 days.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔗</div>
+      <div class="feature-title">Link Any Bank Account</div>
+      <div class="feature-desc">Connect up to 5 external bank accounts. HDFC, SBI, ICICI, Axis — any bank, one dashboard.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💳</div>
+      <div class="feature-title">Payment Gateway</div>
+      <div class="feature-desc">Integrated payment gateway supporting UPI, Debit/Credit Cards, and Net Banking.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔐</div>
+      <div class="feature-title">Bank-Grade Security</div>
+      <div class="feature-desc">bcrypt password hashing, JWT sessions, rate limiting, CSRF protection, and parameterized SQL.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Real-Time Analytics</div>
+      <div class="feature-desc">Track spending, categorize transactions, and view detailed 30-day financial insights.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🏦</div>
+      <div class="feature-title">Multiple Accounts</div>
+      <div class="feature-desc">Open Savings, Checking, or Premium accounts. Manage all from one unified interface.</div>
+    </div>
+  </div>
+</section>
+
+<!-- UPI Section -->
+<section style="padding:5rem 2rem;text-align:center;max-width:800px;margin:0 auto;">
+  <div class="badge badge-teal" style="margin-bottom:1.5rem;">UPI Payments</div>
+  <h2 style="margin-bottom:1rem;">Your Payfin UPI Handle</h2>
+  <p style="color:var(--text-second);margin-bottom:2.5rem;line-height:1.7;">
+    Every Payfin account comes with a free UPI ID in the format
+    <strong style="color:var(--teal);font-family:var(--font-mono);">yourname@payfin</strong>.
+    Send and receive money instantly from any UPI app in India.
+  </p>
+
+  <div style="
+    background:linear-gradient(135deg,#0a2e2c 0%,#081a38 100%);
+    border:1px solid rgba(0,212,200,0.25);
+    border-radius:var(--radius-xl);
+    padding:2rem;
+    max-width:480px;
+    margin:0 auto;
+    position:relative;
+  ">
+    <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:0.75rem;">SAMPLE UPI ID</div>
+    <div style="
+      font-family:var(--font-mono);
+      font-size:1.5rem;
+      font-weight:700;
+      color:var(--teal);
+      background:rgba(0,212,200,0.08);
+      border:1px solid rgba(0,212,200,0.2);
+      border-radius:var(--radius-md);
+      padding:1rem 1.5rem;
+    ">
+      rahul@payfin
+    </div>
+    <p style="font-size:0.8rem;color:var(--text-muted);margin-top:1rem;">Works with PhonePe, GPay, Paytm, BHIM & all UPI apps</p>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section style="
+  background:linear-gradient(135deg,#060f20 0%,#080e1c 100%);
+  border-top:1px solid var(--border);
+  text-align:center;
+  padding:5rem 2rem;
+">
+  <div style="max-width:600px;margin:0 auto;">
+    <h2 style="margin-bottom:1rem;">Ready to Experience the Future of Banking?</h2>
+    <p style="color:var(--text-second);margin-bottom:2rem;line-height:1.7;">
+      Join thousands of users who trust Payfin for their daily banking needs.
+      Open your account in 60 seconds — no paperwork, no hassle.
+    </p>
+    <a href="/register" class="btn btn-primary btn-xl" style="margin-right:1rem;">Get Started Free</a>
+    <a href="/login"    class="btn btn-ghost btn-xl">Already have an account</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer style="
+  background:var(--bg-panel);
+  border-top:1px solid var(--border);
+  padding:2rem;
+  text-align:center;
+  color:var(--text-muted);
+  font-size:0.8rem;
+">
+  <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:1rem;">
+    <div class="logo-icon" style="width:28px;height:28px;font-size:0.9rem;">V</div>
+    <strong style="color:var(--text-second);">Payfin</strong>
+  </div>
+  <div>© 2025 Payfin All rights reserved.</div>
+  <div style="margin-top:0.5rem;">
+    Bank Smarter. Move Faster. · GSTIN: 07AABCV1234M1ZX · RBI Reg. No.: NBFC-2025-VE-001
+  </div>
+  <div style="margin-top:0.75rem;display:flex;justify-content:center;gap:1.5rem;">
+    <a href="#" style="color:var(--text-muted);">Privacy Policy</a>
+    <a href="#" style="color:var(--text-muted);">Terms of Service</a>
+    <a href="#" style="color:var(--text-muted);">Contact Support</a>
+  </div>
+</footer>
+
+{% endblock %}

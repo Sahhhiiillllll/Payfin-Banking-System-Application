@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { @apply border-white/10; }
+  body {
+    background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(0, 212, 200, 0.12), transparent),
+                radial-gradient(ellipse 60% 40% at 100% 0%, rgba(245, 197, 66, 0.06), transparent),
+                #050810;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply rounded-2xl border border-white/10 bg-bg-glass backdrop-blur-glass shadow-lg;
+    background: linear-gradient(135deg, rgba(13, 21, 38, 0.85) 0%, rgba(17, 29, 53, 0.65) 100%);
+  }
+
+  .glass-sidebar {
+    @apply border-r border-white/10 bg-bg-panel/90 backdrop-blur-xl;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-teal px-4 py-2.5 text-sm font-semibold text-[#001a18]
+           transition-all hover:bg-teal-dim active:scale-[0.98] disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5
+           text-sm font-medium text-second transition-all hover:bg-white/10 active:scale-[0.98];
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-white/10 bg-bg-surface px-4 py-3 text-sm text-white
+           placeholder:text-muted outline-none transition focus:border-teal/50 focus:ring-2 focus:ring-teal/20;
+  }
+
+  .skeleton {
+    @apply animate-shimmer rounded-lg bg-gradient-to-r from-bg-elevated via-bg-surface to-bg-elevated bg-[length:200%_100%];
+  }
+
+  .stat-value {
+    @apply text-2xl font-bold tracking-tight;
+  }
+}
