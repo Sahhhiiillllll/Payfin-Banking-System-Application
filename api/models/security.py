@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from db import Base
@@ -26,7 +25,7 @@ class AuditLog(Base):
   resource_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
   ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
   user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
-  metadata_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+  metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
   created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)
 
 
@@ -40,7 +39,7 @@ class IdempotencyKey(Base):
   endpoint: Mapped[str] = mapped_column(String(120), nullable=False)
   request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
   response_status: Mapped[int] = mapped_column(Integer, nullable=False)
-  response_body: Mapped[dict] = mapped_column(JSONB, nullable=False)
+  response_body: Mapped[dict] = mapped_column(JSON, nullable=False)
   created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
   expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
@@ -52,7 +51,7 @@ class WebhookEvent(Base):
   provider: Mapped[str] = mapped_column(String(30), nullable=False)
   event_id: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
   event_type: Mapped[str] = mapped_column(String(80), nullable=False)
-  payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+  payload: Mapped[dict] = mapped_column(JSON, nullable=False)
   signature_valid: Mapped[bool] = mapped_column(default=False, nullable=False)
   processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
   created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

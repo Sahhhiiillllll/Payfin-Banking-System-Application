@@ -19,3 +19,21 @@ data/
 node_modules/
 .next/
 .vercel/
+# SQLite WAL
+*.db-wal
+*.db-shm
+# Python cache
+*.pycache/
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+# Alembic
+alembic/versions/__pycache__/
+# OS
+Thumbs.db
+# Vercel
+.vercel
+# Env files (never commit secrets)
+.env.*
+!.env.example

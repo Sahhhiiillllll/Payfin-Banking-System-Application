@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "framework": "nextjs",
-  "buildCommand": "npm run build && pip install -r api/requirements.txt",
+  "buildCommand": "npm run build",
   "installCommand": "npm install",
   "functions": {
     "api/index.py": {
@@ -12,8 +12,7 @@
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index" },
-    { "source": "/((?!api/).*)", "destination": "/" }
+    { "source": "/api/:path*", "destination": "/api/index" }
   ],
   "headers": [
     {
@@ -30,7 +29,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.pusher.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.pusher.com wss://*.pusher.com https://*.vercel.app; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.pusher.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.pusher.com wss://*.pusher.com https://*.vercel.app https://*.neon.tech; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         }
       ]
     }

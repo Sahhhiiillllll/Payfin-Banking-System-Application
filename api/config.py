@@ -20,16 +20,31 @@ class Config:
   JWT_EXPIRY_HOURS = int(os.getenv("JWT_EXPIRY_HOURS", "24"))
   JWT_ALGORITHM = "HS256"
 
-  # PostgreSQL — use pooled URL on Vercel (Neon/Supabase pgbouncer port 6543)
-  DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+pg8000://payfin:payfin@localhost:5432/payfin",
-  )
-  DATABASE_POOL_URL = os.getenv("DATABASE_POOL_URL", DATABASE_URL)
+  # PostgreSQL — always use pg8000 driver (pure Python, works on Vercel)
+  _raw_db_url = os.getenv("DATABASE_URL", "postgresql+pg8000://payfin:payfin@localhost:5432/payfin")
+  _raw_pool_url = os.getenv("DATABASE_POOL_URL", "")
+
+  # Normalize: if URL uses postgres:// or postgresql:// without driver, inject pg8000
+  @staticmethod
+  def _normalize_db_url(url: str) -> str:
+    if not url:
+      return url
+    # Neon/Supabase often gives postgresql:// or postgres:// — inject pg8000
+    if url.startswith("postgresql://") or url.startswith("postgres://"):
+      url = url.replace("postgres://", "postgresql+pg8000://", 1)
+      url = url.replace("postgresql://", "postgresql+pg8000://", 1)
+    # Remove psycopg/psycopg2 driver references and replace with pg8000
+    for driver in ["postgresql+psycopg2://", "postgresql+psycopg://"]:
+      if url.startswith(driver):
+        url = "postgresql+pg8000://" + url[len(driver):]
+    return url
+
+  DATABASE_URL = _normalize_db_url.__func__(_raw_db_url)
+  DATABASE_POOL_URL = _normalize_db_url.__func__(_raw_pool_url) if _raw_pool_url else DATABASE_URL
 
   # Redis / Upstash (rate limiting + optional idempotency cache)
   REDIS_URL = os.getenv("REDIS_URL", "")
-  RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", REDIS_URL or "memory://")
+  RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", os.getenv("REDIS_URL", "") or "memory://")
 
   # Branding
   COMPANY_NAME = os.getenv("COMPANY_NAME", "Payfin")
@@ -55,7 +70,7 @@ class Config:
   CASHFREE_APP_ID = os.getenv("CASHFREE_APP_ID", "")
   CASHFREE_SECRET_KEY = os.getenv("CASHFREE_SECRET_KEY", "")
   STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
-  PAYMENT_PROVIDER = os.getenv("PAYMENT_PROVIDER", "razorpay")  # razorpay | cashfree | stripe | internal
+  PAYMENT_PROVIDER = os.getenv("PAYMENT_PROVIDER", "razorpay")
 
   # External verification
   RAZORPAY_IFSC_API = os.getenv("RAZORPAY_IFSC_API", "https://ifsc.razorpay.com")

@@ -1,4 +1,4 @@
-"""Alembic migration environment."""
+"""Alembic migration environment — Payfin."""
 
 from logging.config import fileConfig
 import os
@@ -6,33 +6,44 @@ import sys
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+from dotenv import load_dotenv
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
+# Load .env so DATABASE_URL is available when running locally
+load_dotenv()
 
+# Add api/ to sys.path so SQLAlchemy models and config resolve
+_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(_root, "api"))
+
+from config import Config  # noqa: E402
 from db import Base  # noqa: E402
 import models  # noqa: F401, E402
 
-config = context.config
-if config.config_file_name is not None:
-  fileConfig(config.config_file_name)
+alembic_config = context.config
+if alembic_config.config_file_name is not None:
+  fileConfig(alembic_config.config_file_name)
 
 target_metadata = Base.metadata
 
-database_url = os.getenv("DATABASE_URL")
-if database_url:
-  config.set_main_option("sqlalchemy.url", database_url)
+# Use the normalized DATABASE_URL from Config (already has pg8000 injected)
+alembic_config.set_main_option("sqlalchemy.url", Config.DATABASE_URL)
 
 
 def run_migrations_offline() -> None:
-  url = config.get_main_option("sqlalchemy.url")
-  context.configure(url=url, target_metadata=target_metadata, literal_binds=True, dialect_opts={"paramstyle": "named"})
+  url = alembic_config.get_main_option("sqlalchemy.url")
+  context.configure(
+    url=url,
+    target_metadata=target_metadata,
+    literal_binds=True,
+    dialect_opts={"paramstyle": "named"},
+  )
   with context.begin_transaction():
     context.run_migrations()
 
 
 def run_migrations_online() -> None:
   connectable = engine_from_config(
-    config.get_section(config.config_ini_section, {}),
+    alembic_config.get_section(alembic_config.config_ini_section, {}),
     prefix="sqlalchemy.",
     poolclass=pool.NullPool,
   )
