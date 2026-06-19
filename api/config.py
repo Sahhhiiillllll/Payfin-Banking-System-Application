@@ -7,71 +7,76 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _clean_url_params(url: str) -> str:
+  """Remove pg8000-incompatible query params like channel_binding."""
+  if "?" not in url:
+    return url
+  base, query = url.split("?", 1)
+  # Keep only params pg8000 supports
+  blocked = {"channel_binding", "options"}
+  kept = []
+  for part in query.split("&"):
+    if "=" in part:
+      key = part.split("=", 1)[0].strip()
+      if key not in blocked:
+        kept.append(part)
+    elif part.strip():
+      kept.append(part)
+  return base + ("?" + "&".join(kept) if kept else "")
+
+
 def _normalize_db_url(url: str) -> str:
-  """Inject pg8000 driver into any postgresql:// URL."""
+  """Inject pg8000 driver and strip incompatible params."""
   if not url:
     return url
+  # Inject pg8000 driver
   if url.startswith("postgres://"):
-    return "postgresql+pg8000://" + url[len("postgres://"):]
-  if url.startswith("postgresql://"):
-    return "postgresql+pg8000://" + url[len("postgresql://"):]
-  if url.startswith("postgresql+psycopg2://"):
-    return "postgresql+pg8000://" + url[len("postgresql+psycopg2://"):]
-  if url.startswith("postgresql+psycopg://"):
-    return "postgresql+pg8000://" + url[len("postgresql+psycopg://"):]
+    url = "postgresql+pg8000://" + url[len("postgres://"):]
+  elif url.startswith("postgresql://"):
+    url = "postgresql+pg8000://" + url[len("postgresql://"):]
+  elif url.startswith("postgresql+psycopg2://"):
+    url = "postgresql+pg8000://" + url[len("postgresql+psycopg2://"):]
+  elif url.startswith("postgresql+psycopg://"):
+    url = "postgresql+pg8000://" + url[len("postgresql+psycopg://"):]
+  # Strip incompatible params
+  url = _clean_url_params(url)
   return url
 
 
 def _get_db_url() -> str:
-  """
-  Try every env var name that Vercel + Neon integration might set.
-  Vercel-Neon integration sets: POSTGRES_URL, POSTGRES_PRISMA_URL, POSTGRES_URL_NON_POOLING
-  Manual setup sets: DATABASE_URL
-  Also support individual PGHOST/PGUSER/PGPASSWORD/PGDATABASE vars.
-  """
-  # 1. Explicit DATABASE_URL (manual setup)
-  url = os.environ.get("DATABASE_URL", "").strip()
-  if url:
-    return _normalize_db_url(url)
-
-  # 2. Vercel-Neon native integration variable names
-  for key in ("POSTGRES_URL", "POSTGRES_URL_NON_POOLING", "POSTGRES_PRISMA_URL"):
+  """Try every env var name Vercel + Neon integration might set."""
+  for key in (
+    "DATABASE_URL",
+    "POSTGRES_URL",
+    "POSTGRES_URL_NON_POOLING",
+    "POSTGRES_PRISMA_URL",
+  ):
     url = os.environ.get(key, "").strip()
     if url:
       return _normalize_db_url(url)
 
-  # 3. Individual PG* vars (Neon also sets these)
+  # Individual PG* vars
   host = os.environ.get("PGHOST", "").strip()
   user = os.environ.get("PGUSER", "").strip()
   password = os.environ.get("PGPASSWORD", "").strip()
   database = os.environ.get("PGDATABASE", "").strip()
   port = os.environ.get("PGPORT", "5432").strip()
   if host and user and password and database:
-    return f"postgresql+pg8000://{user}:{password}@{host}:{port}/{database}?ssl=true"
+    return f"postgresql+pg8000://{user}:{password}@{host}:{port}/{database}?sslmode=require"
 
-  # 4. Fallback — local dev only
   import sys
   if os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV"):
-    print(
-      "FATAL: No database URL found! Set DATABASE_URL or connect Neon in Vercel dashboard.",
-      file=sys.stderr,
-    )
+    print("FATAL: No database URL found! Set DATABASE_URL in Vercel env vars.", file=sys.stderr)
   return "postgresql+pg8000://payfin:payfin@localhost:5432/payfin"
 
 
 def _get_pool_url() -> str:
-  """Pooled URL — prefer POSTGRES_URL (Neon pooler) over non-pooling URL."""
-  # 1. Explicit pool URL
   url = os.environ.get("DATABASE_POOL_URL", "").strip()
   if url:
     return _normalize_db_url(url)
-
-  # 2. Vercel-Neon pooler URL
   url = os.environ.get("POSTGRES_URL", "").strip()
   if url:
     return _normalize_db_url(url)
-
-  # 3. Fall back to direct URL
   return _get_db_url()
 
 
@@ -85,7 +90,6 @@ class Config:
   JWT_EXPIRY_HOURS: int = int(os.environ.get("JWT_EXPIRY_HOURS", "24"))
   JWT_ALGORITHM: str = "HS256"
 
-  # Resolved at import time — all os.environ reads happen inside the functions above
   DATABASE_URL: str = _get_db_url()
   DATABASE_POOL_URL: str = _get_pool_url()
 
@@ -102,15 +106,12 @@ class Config:
 
   CORS_ORIGINS: list = [
     o.strip()
-    for o in os.environ.get(
-      "CORS_ORIGINS",
-      "http://localhost:3000,https://*.vercel.app"
-    ).split(",")
+    for o in os.environ.get("CORS_ORIGINS", "http://localhost:3000,https://*.vercel.app").split(",")
     if o.strip()
   ]
 
   MFA_ISSUER: str = os.environ.get("MFA_ISSUER", "Payfin")
-  WEBHOOK_SECRET: str = os.environ.get("WEBHOOK_SECRET", "payfin-webhook-hmac-secret-change-me")
+  WEBHOOK_SECRET: str = os.environ.get("WEBHOOK_SECRET", "payfin-webhook-hmac-secret")
 
   RAZORPAY_KEY_ID: str = os.environ.get("RAZORPAY_KEY_ID", "")
   RAZORPAY_KEY_SECRET: str = os.environ.get("RAZORPAY_KEY_SECRET", "")
@@ -134,5 +135,4 @@ class Config:
   SESSION_COOKIE_SECURE: bool = os.environ.get("FLASK_ENV", "development") == "production"
   MAX_CONTENT_LENGTH: int = 1 * 1024 * 1024
   IDEMPOTENCY_TTL_SECONDS: int = int(os.environ.get("IDEMPOTENCY_TTL_SECONDS", "86400"))
-
   FRONTEND_URL: str = os.environ.get("FRONTEND_URL", "http://localhost:3000")
