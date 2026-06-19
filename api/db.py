@@ -1,8 +1,9 @@
-"""SQLAlchemy engine + session factory — optimized for Vercel serverless + Neon/Supabase."""
+"""SQLAlchemy engine + session — optimized for Vercel serverless + Neon/Supabase."""
 
 from __future__ import annotations
 
 import os
+import sys
 from contextlib import contextmanager
 from typing import Generator
 
@@ -10,19 +11,27 @@ from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from sqlalchemy.pool import NullPool
 
-from config import Config
-
 Base = declarative_base()
 
-_is_serverless = bool(os.getenv("VERCEL")) or Config.FLASK_ENV == "production"
+# ── resolve DATABASE_URL fresh at module load (after Vercel injects env vars) ──
+def _get_url() -> str:
+  from config import _get_pool_url
+  url = _get_pool_url()
+  if "localhost" in url and os.environ.get("VERCEL"):
+    print("ERROR: DATABASE_URL resolves to localhost on Vercel — check env vars!", file=sys.stderr)
+  return url
+
+
+_db_url = _get_url()
+_is_serverless = bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV")) or \
+                 os.environ.get("FLASK_ENV") == "production"
 
 _engine_kwargs: dict = {
-  "echo": Config.DEBUG,
+  "echo": os.environ.get("FLASK_DEBUG", "False").lower() == "true",
   "pool_pre_ping": True,
 }
 
 if _is_serverless:
-  # NullPool = no persistent connections across Lambda/Vercel invocations
   _engine_kwargs["poolclass"] = NullPool
 else:
   _engine_kwargs.update(
@@ -32,13 +41,11 @@ else:
     pool_timeout=20,
   )
 
-# pg8000 does not support connect_args "options" — set statement_timeout via event
-engine = create_engine(Config.DATABASE_POOL_URL, **_engine_kwargs)
+engine = create_engine(_db_url, **_engine_kwargs)
 
 
 @event.listens_for(engine, "connect")
 def _set_pg_options(dbapi_connection, connection_record):
-  """Apply session-level safety settings on each new connection."""
   try:
     cursor = dbapi_connection.cursor()
     cursor.execute("SET statement_timeout = '25s'")
@@ -46,7 +53,7 @@ def _set_pg_options(dbapi_connection, connection_record):
     cursor.close()
     dbapi_connection.commit()
   except Exception:
-    pass  # Don't break startup if DB isn't ready yet
+    pass
 
 
 SessionLocal = sessionmaker(
@@ -59,7 +66,6 @@ SessionLocal = sessionmaker(
 
 @contextmanager
 def get_db() -> Generator[Session, None, None]:
-  """Context manager providing a transactional DB session."""
   session = SessionLocal()
   try:
     yield session
@@ -72,12 +78,10 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def get_db_session() -> Session:
-  """Return a raw session — caller is responsible for commit/close."""
   return SessionLocal()
 
 
 def health_check() -> bool:
-  """Quick connectivity check used by /api/health."""
   try:
     with engine.connect() as conn:
       conn.execute(text("SELECT 1"))
