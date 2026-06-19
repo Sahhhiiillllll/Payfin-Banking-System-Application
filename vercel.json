@@ -7,8 +7,7 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 30,
-      "memory": 1024,
-      "runtime": "vercel-python@3.0.7"
+      "memory": 1024
     }
   },
   "rewrites": [
