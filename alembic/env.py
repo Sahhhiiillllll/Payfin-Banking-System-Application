@@ -3,15 +3,15 @@
 from logging.config import fileConfig
 import os
 import sys
+import ssl
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, text
+from sqlalchemy.pool import NullPool
 from dotenv import load_dotenv
 
-# Load .env so DATABASE_URL is available when running locally
 load_dotenv()
 
-# Add api/ to sys.path so SQLAlchemy models and config resolve
 _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(_root, "api"))
 
@@ -25,12 +25,34 @@ if alembic_config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-# Use the normalized DATABASE_URL from Config (already has pg8000 injected)
-alembic_config.set_main_option("sqlalchemy.url", Config.DATABASE_URL)
+
+def _make_engine():
+  """Build engine with SSL via connect_args (works with all pg8000 versions)."""
+  url = Config.DATABASE_URL
+
+  # Strip ALL SSL/channel params from URL — we pass SSL via connect_args instead
+  if "?" in url:
+    base, query = url.split("?", 1)
+    blocked = {"sslmode", "ssl", "channel_binding", "options",
+               "sslcert", "sslkey", "sslrootcert", "sslpassword"}
+    kept = [p for p in query.split("&")
+            if p and p.split("=", 1)[0].lower() not in blocked]
+    url = base + ("?" + "&".join(kept) if kept else "")
+
+  # Use SSL context via connect_args — works with old and new pg8000
+  connect_args = {}
+  is_cloud = any(h in url for h in ["neon.tech", "supabase", "amazonaws", "rds."])
+  if is_cloud:
+    ssl_ctx = ssl.create_default_context()
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
+    connect_args["ssl_context"] = ssl_ctx
+
+  return create_engine(url, connect_args=connect_args, poolclass=NullPool)
 
 
 def run_migrations_offline() -> None:
-  url = alembic_config.get_main_option("sqlalchemy.url")
+  url = Config.DATABASE_URL
   context.configure(
     url=url,
     target_metadata=target_metadata,
@@ -42,11 +64,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-  connectable = engine_from_config(
-    alembic_config.get_section(alembic_config.config_ini_section, {}),
-    prefix="sqlalchemy.",
-    poolclass=pool.NullPool,
-  )
+  connectable = _make_engine()
   with connectable.connect() as connection:
     context.configure(connection=connection, target_metadata=target_metadata)
     with context.begin_transaction():
