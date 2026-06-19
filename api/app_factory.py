@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 
 from flask import Flask, g, jsonify, request
 from flask_cors import CORS
@@ -23,7 +24,6 @@ def create_app() -> Flask:
   app.config.from_object(Config)
   app.secret_key = Config.SECRET_KEY
 
-  # CORS — allow configured origins; also allow *.vercel.app pattern
   CORS(
     app,
     resources={r"/api/*": {"origins": Config.CORS_ORIGINS}},
@@ -32,21 +32,25 @@ def create_app() -> Flask:
     expose_headers=["X-Request-ID"],
   )
 
-  # Rate limiter — gracefully fall back to in-memory if Redis is unavailable
   _storage = Config.RATELIMIT_STORAGE_URI or "memory://"
   limiter = Limiter(
     get_remote_address,
     app=app,
     default_limits=["1000 per day", "200 per hour"],
     storage_uri=_storage,
-    on_breach=lambda: None,  # don't raise on storage error
+    on_breach=lambda: None,
   )
   app.extensions["limiter"] = limiter
 
   @app.before_request
   def open_db():
-    g.db = SessionLocal()
-    g.repo = BankingRepository(g.db)
+    try:
+      g.db = SessionLocal()
+      g.repo = BankingRepository(g.db)
+    except Exception as e:
+      log.error("DB connection failed: %s", e)
+      g.db = None
+      g.repo = None
 
   @app.teardown_request
   def close_db(exc=None):
@@ -59,7 +63,6 @@ def create_app() -> Flask:
           db.commit()
         except Exception:
           db.rollback()
-          raise
       db.close()
 
   register_routes(app)
@@ -67,11 +70,13 @@ def create_app() -> Flask:
   @app.route("/api/health", methods=["GET"])
   def health():
     db_ok = health_check()
+    db_url_set = bool(os.getenv("DATABASE_URL") or os.getenv("DATABASE_POOL_URL"))
     return jsonify({
       "status": "ok" if db_ok else "degraded",
       "service": Config.APP_NAME,
       "version": "1.0.0",
       "database": "connected" if db_ok else "unreachable",
+      "database_url_configured": db_url_set,
       "environment": Config.FLASK_ENV,
     }), (200 if db_ok else 503)
 
@@ -104,7 +109,10 @@ def create_app() -> Flask:
   @app.errorhandler(500)
   def server_error(e):
     log.exception("Unhandled server error: %s", e)
-    return jsonify({"error": "Internal server error.", "code": 500}), 500
+    # In development show the real error; in production keep it generic
+    if Config.FLASK_ENV != "production":
+      return jsonify({"error": str(e), "code": 500}), 500
+    return jsonify({"error": "Internal server error. Check DATABASE_URL is set in Vercel environment variables.", "code": 500}), 500
 
   @app.after_request
   def security_headers(response):
@@ -123,7 +131,7 @@ def create_app() -> Flask:
 
 
 def init_db():
-  """Create all tables and optionally seed demo data."""
+  """Create all tables."""
   Base.metadata.create_all(bind=engine)
   session = SessionLocal()
   try:
