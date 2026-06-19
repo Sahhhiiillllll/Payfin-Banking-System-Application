@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Optional
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -14,18 +15,16 @@ def _utcnow() -> datetime:
 
 
 class AuditLog(Base):
-  """Append-only immutable audit trail."""
-
   __tablename__ = "audit_logs"
 
   id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-  user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+  user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
   action: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
-  resource_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
-  resource_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
-  ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
-  user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
-  metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+  resource_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+  resource_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+  ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+  user_agent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+  metadata_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
   created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)
 
 
@@ -53,5 +52,5 @@ class WebhookEvent(Base):
   event_type: Mapped[str] = mapped_column(String(80), nullable=False)
   payload: Mapped[dict] = mapped_column(JSON, nullable=False)
   signature_valid: Mapped[bool] = mapped_column(default=False, nullable=False)
-  processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+  processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
   created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

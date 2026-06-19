@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
+from typing import List
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,7 +27,7 @@ class Account(Base):
   created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
   user: Mapped["User"] = relationship("User", back_populates="accounts")
-  transactions: Mapped[list["Transaction"]] = relationship("Transaction", back_populates="account")
+  transactions: Mapped[List["Transaction"]] = relationship("Transaction", back_populates="account")
 
 
 class LinkedAccount(Base):

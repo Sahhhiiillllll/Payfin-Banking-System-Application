@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
+from typing import Optional
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,12 +20,12 @@ class Transaction(Base):
 
   id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
   account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True)
-  txn_type: Mapped[str] = mapped_column(String(10), nullable=False)  # CREDIT | DEBIT
+  txn_type: Mapped[str] = mapped_column(String(10), nullable=False)
   txn_category: Mapped[str] = mapped_column(String(20), default="BANK", nullable=False)
   amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
   balance_after: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
-  description: Mapped[str | None] = mapped_column(Text, nullable=True)
-  counterparty: Mapped[str | None] = mapped_column(String(200), nullable=True)
+  description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+  counterparty: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
   reference_id: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
   status: Mapped[str] = mapped_column(String(20), default="SUCCESS", nullable=False)
   created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)
@@ -37,16 +38,16 @@ class GatewayTransaction(Base):
 
   id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
   user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-  account_id: Mapped[int | None] = mapped_column(ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True)
+  account_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True)
   payment_method: Mapped[str] = mapped_column(String(20), nullable=False)
   amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
   status: Mapped[str] = mapped_column(String(20), default="PENDING", nullable=False)
   reference_id: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
-  external_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
-  merchant: Mapped[str | None] = mapped_column(String(200), nullable=True)
-  description: Mapped[str | None] = mapped_column(Text, nullable=True)
-  card_last4: Mapped[str | None] = mapped_column(String(4), nullable=True)
-  upi_vpa: Mapped[str | None] = mapped_column(String(100), nullable=True)
+  external_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+  merchant: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+  description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+  card_last4: Mapped[Optional[str]] = mapped_column(String(4), nullable=True)
+  upi_vpa: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
   created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)
 
 
