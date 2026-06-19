@@ -7,29 +7,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def _clean_url_params(url: str) -> str:
-  """Remove pg8000-incompatible query params like channel_binding."""
-  if "?" not in url:
-    return url
-  base, query = url.split("?", 1)
-  # Keep only params pg8000 supports
-  blocked = {"channel_binding", "options"}
-  kept = []
-  for part in query.split("&"):
-    if "=" in part:
-      key = part.split("=", 1)[0].strip()
-      if key not in blocked:
-        kept.append(part)
-    elif part.strip():
-      kept.append(part)
-  return base + ("?" + "&".join(kept) if kept else "")
-
-
 def _normalize_db_url(url: str) -> str:
-  """Inject pg8000 driver and strip incompatible params."""
+  """Convert any postgres URL to pg8000-compatible format."""
   if not url:
     return url
-  # Inject pg8000 driver
+
+  # Step 1: inject pg8000 driver
   if url.startswith("postgres://"):
     url = "postgresql+pg8000://" + url[len("postgres://"):]
   elif url.startswith("postgresql://"):
@@ -38,8 +21,33 @@ def _normalize_db_url(url: str) -> str:
     url = "postgresql+pg8000://" + url[len("postgresql+psycopg2://"):]
   elif url.startswith("postgresql+psycopg://"):
     url = "postgresql+pg8000://" + url[len("postgresql+psycopg://"):]
-  # Strip incompatible params
-  url = _clean_url_params(url)
+
+  # Step 2: fix query params — pg8000 uses ssl=true not sslmode=require
+  if "?" in url:
+    base, query = url.split("?", 1)
+    # params pg8000 does NOT support
+    blocked = {"sslmode", "channel_binding", "options", "sslcert", "sslkey", "sslrootcert"}
+    has_ssl = False
+    kept = []
+    for part in query.split("&"):
+      if not part.strip():
+        continue
+      key = part.split("=", 1)[0].strip().lower()
+      if key == "sslmode":
+        has_ssl = True  # sslmode=require → convert to ssl=true
+      elif key == "ssl":
+        kept.append(part)
+        has_ssl = True
+      elif key not in blocked:
+        kept.append(part)
+    if has_ssl:
+      kept.append("ssl=true")
+    url = base + ("?" + "&".join(kept) if kept else "")
+  else:
+    # No query string — add ssl=true if connecting to Neon/cloud
+    if "neon.tech" in url or "supabase" in url or "amazonaws" in url:
+      url += "?ssl=true"
+
   return url
 
 
@@ -55,18 +63,18 @@ def _get_db_url() -> str:
     if url:
       return _normalize_db_url(url)
 
-  # Individual PG* vars
+  # Individual PG* vars (Neon sets these too)
   host = os.environ.get("PGHOST", "").strip()
   user = os.environ.get("PGUSER", "").strip()
   password = os.environ.get("PGPASSWORD", "").strip()
   database = os.environ.get("PGDATABASE", "").strip()
   port = os.environ.get("PGPORT", "5432").strip()
   if host and user and password and database:
-    return f"postgresql+pg8000://{user}:{password}@{host}:{port}/{database}?sslmode=require"
+    return f"postgresql+pg8000://{user}:{password}@{host}:{port}/{database}?ssl=true"
 
   import sys
   if os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV"):
-    print("FATAL: No database URL found! Set DATABASE_URL in Vercel env vars.", file=sys.stderr)
+    print("FATAL: No DATABASE_URL found! Set it in Vercel env vars.", file=sys.stderr)
   return "postgresql+pg8000://payfin:payfin@localhost:5432/payfin"
 
 
