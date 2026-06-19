@@ -8,6 +8,7 @@ from routes.gateway import gateway_bp
 from routes.security import security_bp
 from routes.webhooks import webhooks_bp
 from routes.statements import statements_bp
+from routes.debug import debug_bp
 
 
 def register_routes(app):
@@ -19,3 +20,4 @@ def register_routes(app):
   app.register_blueprint(security_bp)
   app.register_blueprint(webhooks_bp)
   app.register_blueprint(statements_bp)
+  app.register_blueprint(debug_bp)
